@@ -174,6 +174,26 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				PostMessage(hWnd, WM_SOCKET, wParam, FD_READ);
 			}
 		}
+
+	
+		if (socket_map.begin() == socket_map.end()) {;}
+		else
+		{
+			for (it = socket_map.begin(); it != socket_map.end(); it++)
+			{
+				
+				iRetval		= send(it->second->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+				if (iRetval == SOCKET_ERROR)
+				{
+					if (WSAGetLastError() != WSAEWOULDBLOCK)
+					{
+						err_display("send()");
+					}
+					return;
+				}
+			}
+		}
+		
 		break;
 
 	case FD_CLOSE:
@@ -219,7 +239,8 @@ VOID RemoveSocketInfo(SOCKET sock)
 	int iAddrlen	= sizeof(addrClient);
 	getpeername(sock, (SOCKADDR*)&addrClient, &iAddrlen);
 	printf("[TCP Server] Client Quit: IP Address = %s, Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
-	
+
+	closesocket(sock);
 	for (it = socket_map.begin(); it != socket_map.end(); it++)
 	{
 		if (it->second->sock == sock)
