@@ -1,4 +1,1 @@
-Hello
-
-
-This is test file.
+Hello, I'm learing about C, C++, WinAPI, Socket
