@@ -32,25 +32,24 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	MSG			iMessage;
 	HACCEL		hAccelTable;
 
-	
+	g_hInst		= hInstance;
+
+	DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAIN), NULL, DlgProc_Waiting);
+
 	//Window Create
-	MyRegisterClass(hInstance);
+	MyRegisterClass(g_hInst);
 
 	//Window Load
-	if (!InitInstance (hInstance, nCmdShow))
+	if (!InitInstance (g_hInst, nCmdShow))
 	{
 		return FALSE;
 	}
 
 	//Set Accelerators
-	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_TETRIS));
-
-	//Socket Create
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) return -1;
+	hAccelTable = LoadAccelerators(g_hInst, MAKEINTRESOURCE(IDC_TETRIS));
 
 
-	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
+	DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
 
 	
 	while (GetMessage(&iMessage, NULL, 0, 0))

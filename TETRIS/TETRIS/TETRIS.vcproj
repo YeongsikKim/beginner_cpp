@@ -199,6 +199,10 @@
 				RelativePath=".\TETRIS.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\waiting_room.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="헤더 파일"
@@ -227,6 +231,10 @@
 			</File>
 			<File
 				RelativePath=".\TETRIS.h"
+				>
+			</File>
+			<File
+				RelativePath=".\waiting_room.h"
 				>
 			</File>
 		</Filter>

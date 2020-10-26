@@ -20,11 +20,13 @@
 #include <tchar.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <commctrl.h>
 
 
 
 #include "TCP_Chatting.h"
 #include "TETRIS.h"
+#include "waiting_room.h"
 
 
 
@@ -73,6 +75,11 @@ extern int			score;
 extern int			bricknum;
 extern int			iInterval;
 extern HBITMAP		hBit[11];
+extern HWND			hList; 
+extern HWND			hRoomCreate; 
+extern HWND			hOKbutton2;
+extern HWND			hEdit;
+extern SOCKET		sock_room;
 
 
 //SOCKET Global variable

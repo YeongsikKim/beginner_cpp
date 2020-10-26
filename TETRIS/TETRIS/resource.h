@@ -23,6 +23,11 @@
 #define IDB_BITMAP9                     137
 #define IDB_BITMAP10                    138
 #define IDB_BITMAP11                    139
+#define IDD_DIALOG_MAIN                 141
+#define IDD_DIALOG_MAKING               142
+#define IDC_LIST1                       1005
+#define IDC_BUTTON1                     1007
+#define IDC_EDIT_ROOMNAME               1009
 #define IDM_GAME_START                  32771
 #define ID_32772                        32772
 #define IDM_GAME_PAUSE                  32773
@@ -35,9 +40,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        140
+#define _APS_NEXT_RESOURCE_VALUE        143
 #define _APS_NEXT_COMMAND_VALUE         32776
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_CONTROL_VALUE         1010
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

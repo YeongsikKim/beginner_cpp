@@ -7,7 +7,8 @@
 //TETRIS Global Variable
 HINSTANCE		g_hInst;								
 HWND			hWndMain;
-
+HWND			hList, hRoomCreate, hOKbutton2, hEdit;
+SOCKET			sock_room;
 
 
 
@@ -22,8 +23,9 @@ int iInterval;
 HBITMAP hBit[11];
 
 
+
 //Chatting Global Variable
-SOCKET sock;
-char buf[BUFSIZE+1];
-HWND hEdit1, hEdit2, hOKbutton;
+SOCKET		sock;
+char		buf[BUFSIZE+1];
+HWND		hEdit1, hEdit2, hOKbutton;
 
