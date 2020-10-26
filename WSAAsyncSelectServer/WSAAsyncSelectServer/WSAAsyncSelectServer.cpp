@@ -27,10 +27,10 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 	//Create Window
-	HWND hWnd		= CreateWindow(L"TCP Server", L"TCP Server", WS_OVERLAPPEDWINDOW, 0, 0, 600, 300, NULL, (HMENU)NULL, NULL, NULL);
+	HWND hWnd		= CreateWindow(L"TCP Server", L"TCP Server", WS_DISABLED, 0, 0, 600, 300, NULL, (HMENU)NULL, NULL, NULL);
 	if (hWnd == NULL) return -1;
-	//ShowWindow(hWnd, SW_SHOWNORMAL);
-	//UpdateWindow(hWnd);
+	ShowWindow(hWnd, SW_HIDE);
+	UpdateWindow(hWnd);
 
 
 	//WinSock initialization
