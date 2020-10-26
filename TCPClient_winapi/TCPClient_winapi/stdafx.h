@@ -24,6 +24,7 @@
 
 #define MAX_LOADSTRING	100
 #define BUFSIZE			512
+#define WM_SOCKET		(WM_USER+1)
 
 // TODO: 프로그램에 필요한 추가 헤더는 여기에서 참조합니다.
 
@@ -35,6 +36,8 @@ LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 BOOL	CALLBACK	DlgProc(HWND, UINT, WPARAM, LPARAM);
 VOID				DisplayText(char *fmt, ...);
+VOID				ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+VOID				InitProc(HWND hDlg);
 
 
 DWORD	WINAPI		ClientMain(LPVOID arg);

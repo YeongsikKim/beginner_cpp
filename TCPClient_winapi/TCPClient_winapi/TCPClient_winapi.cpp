@@ -5,7 +5,6 @@
 #include "TCPClient_winapi.h"
 
 
-
 //int vsprintf(char *cbuf, const char *fmt, va_list arg);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
@@ -13,26 +12,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
                      LPTSTR    lpCmdLine,
                      int       nCmdShow)
 {
-	UNREFERENCED_PARAMETER(hPrevInstance);
-	UNREFERENCED_PARAMETER(lpCmdLine);
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) return -1;
 
- 	// TODO: 여기에 코드를 입력합니다.
-
-	
-	wcscpy_s(szWindowClass, sizeof(_T("WinClass")), _T("WinClass"));
-	hReadEvent		= CreateEvent(NULL, FALSE, TRUE, NULL);
-	if (hReadEvent == NULL) return -1;
-	hWriteEvent		= CreateEvent(NULL, FALSE, FALSE, NULL);
-	if (hWriteEvent == NULL) return -1;
-	
-	CreateThread(NULL, 0, ClientMain, NULL, 0, NULL);
 
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
-
-	CloseHandle(hReadEvent);
-	CloseHandle(hWriteEvent);
-
 	closesocket(sock);
+
 
 	WSACleanup();
 
@@ -42,13 +28,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	int retval		= 0;
+
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
-		hEdit1		= GetDlgItem(hDlg, IDC_EDIT1);
-		hEdit2		= GetDlgItem(hDlg, IDC_EDIT2);
-		hOKbutton	= GetDlgItem(hDlg, IDOK);
-		SendMessage(hEdit2, EM_SETLIMITTEXT, BUFSIZE, 0);
+		InitProc(hDlg);
 		return TRUE;
 	case WM_COMMAND:
 		switch(LOWORD(wParam))
@@ -57,86 +42,24 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			EnableWindow(hOKbutton, FALSE);
 			WaitForSingleObject(hReadEvent, INFINITE);
 			GetDlgItemTextA(hDlg, IDC_EDIT2, buf, BUFSIZE+1);
-
-			SetEvent(hWriteEvent);
+			send(sock, buf, strlen(buf), 0);
 
 			SetFocus(hEdit2);
 			SendMessage(hEdit2, EM_SETSEL, 0, -1);
 			SendMessage(hEdit2, EM_REPLACESEL, NULL, (LPARAM)"");
+			EnableWindow(hOKbutton, TRUE);
+
 			return TRUE;
 		case IDCANCEL:
 			EndDialog(hDlg, 0);
 			return TRUE;
 		}
 		return FALSE;
-	
+	case WM_SOCKET:
+		ProcessSocketMessage(hDlg, uMsg, wParam, lParam);
+		return TRUE;
 	}
 	return FALSE;
-}
-
-
-
-DWORD WINAPI ClientMain(LPVOID arg)
-{
-	int retval;
-
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) return -1;
-
-	sock		= socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET) err_quit("socket()");
-
-	SOCKADDR_IN serveraddr;
-	serveraddr.sin_family		= AF_INET;
-	serveraddr.sin_port			= htons(9000);
-	serveraddr.sin_addr.s_addr	= inet_addr("127.0.0.1");
-
-	retval		= connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
-	if (retval == SOCKET_ERROR) err_quit("connect()");
-
-
-	while (TRUE)
-	{
-		WaitForSingleObject(hWriteEvent, INFINITE);
-
-
-		if (strlen(buf) == 0)
-		{
-			EnableWindow(hOKbutton, TRUE);
-
-			SetEvent(hReadEvent);
-			continue;
-		}
-
-		retval		= send(sock, buf, strlen(buf), 0);
-		if (retval == SOCKET_ERROR)
-		{
-			err_display("send()");
-			break;
-		}
-
-		DisplayText("[TCP Client] %d Bytes sending.\r\n", retval);
-		
-		
-
-		retval		= recvn(sock, buf, retval, 0);
-		if(retval == SOCKET_ERROR)
-		{
-			err_display("recv()");
-			break;
-		}
-		else if (retval == 0) break;
-
-		buf[retval]	= '\0';
-		DisplayText("[TCP Client DATA] %s\r\n", buf);
-
-
-		EnableWindow(hOKbutton, true);
-
-		SetEvent(hReadEvent);
-	}
-
-	return 0;
 }
 
 
@@ -158,33 +81,6 @@ VOID DisplayText(char *fmt, ...)
 	va_end(arg);
 }
 
-/*
-VOID DisplayText( char const * const format, ... )
-{
-	va_list args;
-	int     len;
-	char    *buffer;
-
-	// retrieve the variable arguments
-	va_start( args, format );
-
-	len = _vscprintf( format, args ) // _vscprintf doesn't count
-		+ 1; // terminating '\0'
-
-	buffer = (char*)malloc( len * sizeof(char) );
-	if ( 0 != buffer )
-	{
-		vsprintf( buffer, format, args ); // C4996
-		// Note: vsprintf is deprecated; consider using vsprintf_s instead
-		int nLength		=  GetWindowTextLength(hEdit2);
-		SendMessage(hEdit2, EM_SETSEL, nLength, nLength);
-		SendMessage(hEdit2, EM_REPLACESEL, FALSE, (LPARAM)buffer);
-
-		free( buffer );
-	}
-	va_end( args );
-}
-*/
 
 VOID err_quit(char *msg)
 {
@@ -239,138 +135,77 @@ int recvn(SOCKET s, char *buf, int len, int flags)
 	return (len - left);
 }
 
-
-
-//
-//  함수: MyRegisterClass()
-//
-//  목적: 창 클래스를 등록합니다.
-//
-//  설명:
-//
-//    Windows 95에서 추가된 'RegisterClassEx' 함수보다 먼저
-//    해당 코드가 Win32 시스템과 호환되도록
-//    하려는 경우에만 이 함수를 사용합니다. 이 함수를 호출해야
-//    해당 응용 프로그램에 연결된
-//    '올바른 형식의' 작은 아이콘을 가져올 수 있습니다.
-//
-ATOM MyRegisterClass(HINSTANCE hInstance)
+VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	WNDCLASSEX wcex;
+	int retval		= 0;
 
-	wcex.cbSize = sizeof(WNDCLASSEX);
-
-	wcex.style			= CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc	= WndProc;
-	wcex.cbClsExtra		= 0;
-	wcex.cbWndExtra		= 0;
-	wcex.hInstance		= hInstance;
-	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_TCPCLIENT_WINAPI));
-	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
-	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_TCPCLIENT_WINAPI);
-	wcex.lpszClassName	= szWindowClass;
-	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-
-	return RegisterClassEx(&wcex);
-}
-
-//
-//   함수: InitInstance(HINSTANCE, int)
-//
-//   목적: 인스턴스 핸들을 저장하고 주 창을 만듭니다.
-//
-//   설명:
-//
-//        이 함수를 통해 인스턴스 핸들을 전역 변수에 저장하고
-//        주 프로그램 창을 만든 다음 표시합니다.
-//
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
-{
-   HWND hWnd;
-
-   hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
-
-   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
-
-   if (!hWnd)
-   {
-      return FALSE;
-   }
-
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
-
-   return TRUE;
-}
-
-//
-//  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  목적: 주 창의 메시지를 처리합니다.
-//
-//  WM_COMMAND	- 응용 프로그램 메뉴를 처리합니다.
-//  WM_PAINT	- 주 창을 그립니다.
-//  WM_DESTROY	- 종료 메시지를 게시하고 반환합니다.
-//
-//
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	int wmId, wmEvent;
-	PAINTSTRUCT ps;
-	HDC hdc;
-
-	switch (message)
+	switch (WSAGETSELECTEVENT(lParam))
 	{
-	case WM_COMMAND:
-		wmId    = LOWORD(wParam);
-		wmEvent = HIWORD(wParam);
-		// 메뉴의 선택 영역을 구문 분석합니다.
-		switch (wmId)
+	case FD_CLOSE:
+		closesocket(sock);
+		break;
+		
+	case FD_READ:
+		retval		= recv(sock, buf, BUFSIZE, 0);
+		if(retval == SOCKET_ERROR)
 		{
-		case IDM_ABOUT:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			err_display("recv()");
 			break;
-		case IDM_EXIT:
-			DestroyWindow(hWnd);
-			break;
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
+		else if (retval == 0) break;
+
+		buf[retval]	= '\0';
+		DisplayText("[TCP Client DATA] %s\r\n", buf);
+
+
+		EnableWindow(hOKbutton, true);
 		break;
-	case WM_PAINT:
-		hdc = BeginPaint(hWnd, &ps);
-		// TODO: 여기에 그리기 코드를 추가합니다.
-		EndPaint(hWnd, &ps);
-		break;
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;
-	default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
+
+	case FD_CONNECT:
+
+		//WSAAsyncSelect()
+		retval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
+		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
+
 	}
-	return 0;
 }
 
-// 정보 대화 상자의 메시지 처리기입니다.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+
+VOID InitProc(HWND hDlg)
 {
-	UNREFERENCED_PARAMETER(lParam);
-	switch (message)
+	int retval	= 0;
+
+	hEdit1		= GetDlgItem(hDlg, IDC_EDIT1);
+	hEdit2		= GetDlgItem(hDlg, IDC_EDIT2);
+	hOKbutton	= GetDlgItem(hDlg, IDOK);
+	SendMessage(hEdit2, EM_SETLIMITTEXT, BUFSIZE, 0);
+
+	//Socket()
+	sock		= socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == INVALID_SOCKET) err_quit("socket()");
+
+	SOCKADDR_IN serveraddr = {0,};
+	serveraddr.sin_family		= AF_INET;
+	serveraddr.sin_port			= htons(9000);
+	serveraddr.sin_addr.s_addr	= inet_addr("127.0.0.1");
+
+
+	//WSAAsyncSelect()
+	retval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
+	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
+
+	//connect()
+	retval		= connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	if (retval == INVALID_SOCKET)
 	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
-
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+		if (WSAGetLastError() != WSAEWOULDBLOCK)
 		{
-			EndDialog(hDlg, LOWORD(wParam));
-			return (INT_PTR)TRUE;
+			err_display("connect()");
 		}
-		break;
+		return;
 	}
-	return (INT_PTR)FALSE;
+
+
+
+	
 }
-
-
