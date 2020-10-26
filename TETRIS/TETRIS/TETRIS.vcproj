@@ -60,6 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="ws2_32.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -191,6 +192,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\TCP_Chatting.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\TETRIS.cpp"
 				>
 			</File>
@@ -205,11 +210,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resource1.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.h"
 				>
 			</File>
 			<File
 				RelativePath=".\targetver.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TCP_Chatting.h"
 				>
 			</File>
 			<File
@@ -264,6 +277,10 @@
 			</File>
 			<File
 				RelativePath=".\9.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\ChattingWnd.rc"
 				>
 			</File>
 			<File

@@ -2,22 +2,10 @@
 //
 
 #include "stdafx.h"
-#include "TETRIS.h"
 
-#define MAX_LOADSTRING	100
-#define BW				10
-#define BH				20
-#define TS				24
-#define random(n) (rand()%n)
-struct Point
-{
-	int x, y;
-};
 
-// 전역 변수:
-HINSTANCE		g_hInst;								// 현재 인스턴스입니다.
-HWND			hWndMain;
 LPCTSTR			lpszClass = TEXT("Tetris3");
+tag_Status GameStatus;
 Point			Shape[][4][4]=
 {
 	{{0,0,1,0,2,0,-1,0},{0,0,0,1,0,-1,0,-2},{0,0,1,0,2,0,-1,0},{0,0,0,1,0,-1,0,-2}},
@@ -30,29 +18,6 @@ Point			Shape[][4][4]=
 	{{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}},
 	{{0,0,0,0,0,-1,1,0},{0,0,0,0,-1,0,0,-1},{0,0,0,0,0,1,-1,0},{0,0,0,0,0,1,1,0}},
 };
-enum {EMPTY, BRICK, WALL = 10};
-int	board[BW+2][BH+2];
-int nx, ny;
-int brick, rot;
-int nbrick;
-int score;
-int bricknum;
-enum tag_Status {GAMEOVER, RUNNING, PAUSE};
-tag_Status GameStatus;
-int iInterval;
-HBITMAP hBit[11];
-
-// 이 코드 모듈에 들어 있는 함수의 정방향 선언입니다.
-ATOM				MyRegisterClass(HINSTANCE hInstance);
-BOOL				InitInstance(HINSTANCE, int);
-LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
-VOID DrawScreen(HDC hdc);
-VOID MakeNewBrick();
-int GetAround(int x, int y, int b, int r);
-BOOL MoveDown();
-VOID TestFull();
-VOID PrintTile(HDC hdc, int x, int y, int c);
-VOID DrawBitmap(HDC hdc, int x, int y, HBITMAP hBit);
 
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
@@ -63,23 +28,31 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
- 	// TODO: 여기에 코드를 입력합니다.
+ 	
 	MSG			iMessage;
 	HACCEL		hAccelTable;
 
-	// 전역 문자열을 초기화합니다.
 	
+	//Window Create
 	MyRegisterClass(hInstance);
 
-	// 응용 프로그램 초기화를 수행합니다.
+	//Window Load
 	if (!InitInstance (hInstance, nCmdShow))
 	{
 		return FALSE;
 	}
 
+	//Set Accelerators
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_TETRIS));
 
-	// 기본 메시지 루프입니다.
+	//Socket Create
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) return -1;
+
+
+	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
+
+	
 	while (GetMessage(&iMessage, NULL, 0, 0))
 	{
 		if (!TranslateAccelerator(iMessage.hwnd, hAccelTable, &iMessage))
@@ -88,6 +61,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			DispatchMessage(&iMessage);
 		}
 	}
+
+
+	//Close Socket
+	closesocket(sock);
+	WSACleanup();
+	
 
 	return (int) iMessage.wParam;
 }
@@ -308,7 +287,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-// 정보 대화 상자의 메시지 처리기입니다.
+
 VOID DrawScreen(HDC hdc)
 {
 	int x		= 0;
@@ -495,3 +474,4 @@ VOID PrintTile(HDC hdc, int x, int y, int c)
 	DrawBitmap(hdc, x*TS, y*TS, hBit[c]);
 	return;
 }
+

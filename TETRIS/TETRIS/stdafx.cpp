@@ -4,5 +4,26 @@
 
 #include "stdafx.h"
 
-// TODO: 필요한 추가 헤더는
-// 이 파일이 아닌 STDAFX.H에서 참조합니다.
+//TETRIS Global Variable
+HINSTANCE		g_hInst;								
+HWND			hWndMain;
+
+
+
+
+
+int	board[BW+2][BH+2];
+int nx, ny;
+int brick, rot;
+int nbrick;
+int score;
+int bricknum;
+int iInterval;
+HBITMAP hBit[11];
+
+
+//Chatting Global Variable
+SOCKET sock;
+char buf[BUFSIZE+1];
+HWND hEdit1, hEdit2, hOKbutton;
+

@@ -10,12 +10,72 @@
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용은 Windows 헤더에서 제외합니다.
 // Windows 헤더 파일:
 #include <windows.h>
+#include <WinSock2.h>
+#include <WinUser.h>
 
 // C의 런타임 헤더 파일입니다.
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 
-// TODO: 프로그램에 필요한 추가 헤더는 여기에서 참조합니다.
+
+#include "TCP_Chatting.h"
+#include "TETRIS.h"
+
+
+
+//ChattingWnd.cpp define
+#define MAX_LOADSTRING	100
+#define BUFSIZE			512
+#define WM_SOCKET		(WM_USER+1)
+
+
+//TESTRIS.cpp define
+#define BW				10
+#define BH				20
+#define TS				24
+#define random(n) (rand()%n)
+
+
+//Function of TETRIS
+ATOM				MyRegisterClass(HINSTANCE hInstance);
+BOOL				InitInstance(HINSTANCE, int);
+LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
+VOID DrawScreen(HDC hdc);
+VOID MakeNewBrick();
+int GetAround(int x, int y, int b, int r);
+BOOL MoveDown();
+VOID TestFull();
+VOID PrintTile(HDC hdc, int x, int y, int c);
+VOID DrawBitmap(HDC hdc, int x, int y, HBITMAP hBit);
+
+
+struct Point
+{
+	int x, y;
+};
+enum {EMPTY, BRICK, WALL = 10};
+enum tag_Status {GAMEOVER, RUNNING, PAUSE};
+
+
+//TETRIS Global Variable
+extern HINSTANCE	g_hInst;								
+extern HWND			hWndMain;
+extern int			board[BW+2][BH+2];
+extern int			nx, ny;
+extern int			brick, rot;
+extern int			nbrick;
+extern int			score;
+extern int			bricknum;
+extern int			iInterval;
+extern HBITMAP		hBit[11];
+
+
+//SOCKET Global variable
+extern SOCKET sock;
+extern char buf[BUFSIZE+1];
+extern HWND hEdit1, hEdit2, hOKbutton;
