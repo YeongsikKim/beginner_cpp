@@ -133,7 +133,7 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		closesocket(sock);
 		break;
 
-	case FD_READ:
+	case FD_READ:			//Receive waiting room Info		 Only first time
 		retval		= recv(sock, buf, BUFSIZE, 0);
 		if(retval == SOCKET_ERROR)
 		{

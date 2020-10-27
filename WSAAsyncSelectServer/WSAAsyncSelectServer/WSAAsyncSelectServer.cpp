@@ -121,6 +121,14 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			err_display("WSAAsyncSelect()");
 			RemoveSocketInfo(sockClient);
 		}
+		//Send Waiting Room Info
+
+
+
+
+
+
+
 		break;
 	case FD_READ:
 		ptr		= GetSocketInfo(wParam);
