@@ -25,9 +25,11 @@ struct SOCKETINFO
 	char buf[BUFSIZE+1];
 	int recvbytes;
 	int sendbytes;
+	int iRoomNumber;
 	BOOL recvdelayed;
 };
 
+#include "aboutRoom.h"
 
 
 //About Windows Message

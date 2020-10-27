@@ -1,0 +1,1 @@
+VOID CreateRoomInfo(char *buf, SOCKETINFO *ptr);

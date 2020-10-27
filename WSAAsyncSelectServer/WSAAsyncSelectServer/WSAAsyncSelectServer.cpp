@@ -142,10 +142,19 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			return;
 		}
 		ptr->recvbytes		= iRetval;
-		ptr->buf[iRetval]	= '\0';
-		iAddrlen			= sizeof(addrClient);
-		getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
-		printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), ptr->buf);
+		if (ptr->buf[iRetval - 1] == '@')			//Confirm whether it is title of room or not.
+		{
+			ptr->buf[iRetval - 1] == '\0';
+			CreateRoomInfo(ptr->buf, ptr);
+			break;
+		}
+		else
+		{
+			ptr->buf[iRetval]	= '\0';
+			iAddrlen			= sizeof(addrClient);
+			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+			printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), ptr->buf);
+		}
 
 	case FD_WRITE:
 		ptr		= GetSocketInfo(wParam);

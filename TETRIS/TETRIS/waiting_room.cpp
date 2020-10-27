@@ -4,6 +4,14 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 {
 	int retval		= 0;
 
+	LPNMHDR hdr			= NULL;
+	LPNMLISTVIEW nlv	= NULL;
+	LPNMITEMACTIVATE nia = NULL;
+	TCHAR Caption[BUFSIZE+1]	= {0,};
+
+	hdr		= (LPNMHDR)lParam;
+	nlv		= (LPNMLISTVIEW)lParam;
+
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
@@ -14,22 +22,36 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		{
 		case IDC_BUTTON1:
 			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAKING), NULL, DlgProc_MakingRoom);
-			
-			return TRUE;
-		case IDOK:
-
-		case IDCANCEL:
 			EndDialog(hDlg, 0);
 			return TRUE;
-			//case IDC_BUTTON1:
-
+		case IDOK:
+			JoinInTheRoom();
+			EndDialog(hDlg, 0);
+			return TRUE;
+		case IDCANCEL:
+			exit(-1);
+			return TRUE;
 		}
 		return FALSE;
 	case WM_SOCKET:
 		ProcessSocketMessage_Room(hDlg, uMsg, wParam, lParam);
 		return TRUE;
 
+	case WM_NOTIFY:
+		switch (hdr->code)
+		{
+		case NM_CLICK:
+			EnableWindow(hOKbutton2, TRUE);
+			ListView_GetItemText(hList, nlv->iItem, 0, Caption, 255);
+			InvalidateRect(hDlg, NULL, TRUE);
+			break;
+		}
+		
+		
+
+		return TRUE;
 	case WM_DESTROY:
+		EndDialog(hDlg, 0);
 		closesocket(sock_room);
 		return TRUE;
 	}
@@ -63,7 +85,7 @@ VOID InitProc_Waiting(HWND hDlg)
 	COL.iSubItem	= 2;
 	SendMessage(hList, LVM_INSERTCOLUMN, 2, (LPARAM)&COL);
 
-	ViewRoomList();
+	EnableWindow(hOKbutton2, FALSE);
 
 	//Socket Create
 	WSADATA wsa;
@@ -96,9 +118,7 @@ VOID InitProc_Waiting(HWND hDlg)
 	}
 	
 
-	//Create room First
-	EnableWindow(hOKbutton2, FALSE);
-
+	ViewRoomList();
 }
 
 
@@ -140,40 +160,46 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 VOID ViewRoomList()
 {
-	LVITEM		LI;
+	LVITEM		LI = {0,};
 	int i		= 0;
 	int j		= 0;
 	LI.mask			= LVIF_TEXT;
 
 
-	/*
+
 	LI.iSubItem		= 0;
 	LI.iItem		= 0;
-	LI.pszText		= L"Quickly Come in!";
+	LI.pszText		= L"1";
 	SendMessage(hList, LVM_INSERTITEM, 0, (LPARAM)&LI);
 
 	LI.iSubItem		= 1;
+	LI.pszText		= L"Hello World";
+	SendMessage(hList, LVM_SETITEM, 0, (LPARAM)&LI);
+
+	LI.iSubItem		= 2;
 	LI.pszText		= L"1/2";
 	SendMessage(hList, LVM_SETITEM, 0, (LPARAM)&LI);
-	*/
+	
 }
 
 VOID CreateRoom(HWND hDlg)
 {
-	EnableWindow(hRoomCreate, FALSE);
+	int iCharlen		= 0;
 	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, buf, BUFSIZE+1);
-	//We have to coding input the some special character on buf. whether this is room name or not.///////////////////////////////////////////
+	if (buf[0] == '\0'){;}
+	else
+	{
+		//We have to coding input the some special character on buf. whether this is room name or not.
+		iCharlen			= strlen(buf);
+		buf[iCharlen]		= '@';
 
+		send(sock_room, buf, strlen(buf), 0);
 
-
-	send(sock_room, buf, strlen(buf), 0);
-
-	SetFocus(hRoomCreate);
-	SendMessage(hRoomCreate, EM_SETSEL, 0, -1);
-	SendMessage(hRoomCreate, EM_REPLACESEL, NULL, (LPARAM)"");
-	EnableWindow(hOKbutton2, TRUE);
-
-	return;
+		SetFocus(hEdit);
+		SendMessage(hEdit, EM_SETSEL, 0, -1);
+		SendMessage(hEdit, EM_REPLACESEL, NULL, (LPARAM)"");
+		return;
+	}
 
 }
 
@@ -186,6 +212,7 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		{
 		case IDOK:
 			CreateRoom(hDlg);
+			EndDialog(hDlg, 0);
 			return TRUE;
 		case IDCANCEL:
 			EndDialog(hDlg, 0);
@@ -194,4 +221,9 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		return TRUE;
 	}
 	return FALSE;
+}
+
+VOID JoinInTheRoom()
+{
+	
 }

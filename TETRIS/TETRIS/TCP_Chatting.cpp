@@ -164,6 +164,7 @@ VOID InitProc(HWND hDlg)
 	hOKbutton	= GetDlgItem(hDlg, IDOK);
 	SendMessage(hEdit2, EM_SETLIMITTEXT, BUFSIZE, 0);
 
+
 	//Socket()
 	sock		= socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
