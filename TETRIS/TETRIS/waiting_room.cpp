@@ -25,11 +25,11 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			EndDialog(hDlg, 0);
 			return TRUE;
 		case IDOK:
-			JoinInTheRoom();
+			JoinInTheRoom(nia->iItem);
 			EndDialog(hDlg, 0);
 			return TRUE;
 		case IDCANCEL:
-			exit(-1);
+			exit(-1); 
 			return TRUE;
 		}
 		return FALSE;
@@ -38,18 +38,18 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		return TRUE;
 
 	case WM_NOTIFY:
-		switch (hdr->code)
+		switch (((LPNMHDR)lParam)->code)
 		{
-		case NM_CLICK:
+		case LVN_ITEMCHANGED:
 			EnableWindow(hOKbutton2, TRUE);
-			ListView_GetItemText(hList, nlv->iItem, 0, Caption, 255);
-			InvalidateRect(hDlg, NULL, TRUE);
+			nia		= (LPNMITEMACTIVATE)lParam;
+			ListView_GetItemText(hList, nia->iItem, 0, Caption, 255);
+
+			printf("Item : %d, %d, TEXT : %s\n", nia->iItem, nia->iSubItem, Caption);
 			break;
 		}
-		
-		
-
-		return TRUE;
+	
+		break;
 	case WM_DESTROY:
 		EndDialog(hDlg, 0);
 		closesocket(sock_room);
@@ -73,11 +73,11 @@ VOID InitProc_Waiting(HWND hDlg)
 	COL.fmt			= LVCFMT_LEFT;
 	COL.cx			= 150;
 
-	COL.pszText		= L"Room ID";
+	COL.pszText		= L"Room Name";
 	COL.iSubItem	= 0;
 	SendMessage(hList, LVM_INSERTCOLUMN, 0, (LPARAM)&COL);
 
-	COL.pszText		= L"Room Name";
+	COL.pszText		= L"Room ID";
 	COL.iSubItem	= 1;
 	SendMessage(hList, LVM_INSERTCOLUMN, 1, (LPARAM)&COL);
 
@@ -86,6 +86,8 @@ VOID InitProc_Waiting(HWND hDlg)
 	SendMessage(hList, LVM_INSERTCOLUMN, 2, (LPARAM)&COL);
 
 	EnableWindow(hOKbutton2, FALSE);
+
+
 
 	//Socket Create
 	WSADATA wsa;
@@ -114,11 +116,8 @@ VOID InitProc_Waiting(HWND hDlg)
 		{
 			err_display("connect()");
 		}
-		
 	}
-	
 
-	ViewRoomList();
 }
 
 
@@ -130,11 +129,11 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_CLOSE:
-		closesocket(sock);
+		closesocket(sock_room);
 		break;
 
-	case FD_READ:			//Receive waiting room Info		 Only first time
-		retval		= recv(sock, buf, BUFSIZE, 0);
+	case FD_READ:
+		retval		= recv(sock_room, buf, BUFSIZE, 0);
 		if(retval == SOCKET_ERROR)
 		{
 			err_display("recv()");
@@ -142,11 +141,12 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		}
 		else if (retval == 0) break;
 
-		buf[retval]	= '\0';
-		DisplayText("[TCP Client DATA] %s\r\n", buf);
 
-
-		EnableWindow(hOKbutton, true);
+		if (buf[0] == NULL) break;
+		else
+		{
+			ViewRoomList(buf);
+		}	
 		break;
 
 	case FD_CONNECT:
@@ -155,31 +155,47 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		retval		= WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
 		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
+		
+		buf[1]		= '*';
+		send(sock_room, buf, sizeof(char)*2, NULL);
+		
+
 	}
 }
 
-VOID ViewRoomList()
+VOID ViewRoomList(char *buf)
 {
-	LVITEM		LI = {0,};
-	int i		= 0;
-	int j		= 0;
+	int i			= 0;
+	int iBufLen		= 0;
+	int iNum		= 0;
+	int iPeople		= 0;
+	char temp[10]	= {0,};
+	LVITEMA LI		= {0,};
 	LI.mask			= LVIF_TEXT;
 
+	
+
+	iBufLen			= strlen(buf);
+	iNum			= buf[iBufLen + 1];
+	iPeople			= buf[iBufLen + 2];
+	buf[iBufLen + 1] = buf[iBufLen + 2] = '\0';
 
 
 	LI.iSubItem		= 0;
-	LI.iItem		= 0;
-	LI.pszText		= L"1";
-	SendMessage(hList, LVM_INSERTITEM, 0, (LPARAM)&LI);
+	LI.pszText		= buf;
+	SendMessage(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
 
 	LI.iSubItem		= 1;
-	LI.pszText		= L"Hello World";
-	SendMessage(hList, LVM_SETITEM, 0, (LPARAM)&LI);
+	sprintf(LI.pszText, "%d", iNum);
+	SendMessage(hList, LVM_SETITEMA, 0, (LPARAM)&LI);
 
 	LI.iSubItem		= 2;
-	LI.pszText		= L"1/2";
-	SendMessage(hList, LVM_SETITEM, 0, (LPARAM)&LI);
-	
+	sprintf(temp, "%d/%d", iPeople, MAX_PEOPLE);
+	strcpy_s(LI.pszText, sizeof(temp), temp);
+	SendMessage(hList, LVM_SETITEMA, 0, (LPARAM)&LI);
+
+
+	LI.iItem++;
 }
 
 VOID CreateRoom(HWND hDlg)
@@ -191,9 +207,9 @@ VOID CreateRoom(HWND hDlg)
 	{
 		//We have to coding input the some special character on buf. whether this is room name or not.
 		iCharlen			= strlen(buf);
-		buf[iCharlen]		= '@';
+		buf[iCharlen + 1]	= '@';
 
-		send(sock_room, buf, strlen(buf), 0);
+		send(sock_room, buf, iCharlen + 1, 0);
 
 		SetFocus(hEdit);
 		SendMessage(hEdit, EM_SETSEL, 0, -1);
@@ -205,6 +221,10 @@ VOID CreateRoom(HWND hDlg)
 
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	LPNMITEMACTIVATE nia;
+	WCHAR Caption[100]		= {0,};
+
+
 	switch (uMsg)
 	{
 	case WM_COMMAND:
@@ -219,11 +239,13 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			return TRUE;
 		}
 		return TRUE;
-	}
 	return FALSE;
+	}
 }
 
-VOID JoinInTheRoom()
+VOID JoinInTheRoom(int iItem)
 {
-	
+	buf[0]		= iItem + 1;
+	send(sock_room, buf, strlen(buf), NULL);
 }
+

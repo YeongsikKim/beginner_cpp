@@ -32,7 +32,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	MSG			iMessage;
 	HACCEL		hAccelTable;
 
+
 	g_hInst		= hInstance;
+
 
 	DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAIN), NULL, DlgProc_Waiting);
 

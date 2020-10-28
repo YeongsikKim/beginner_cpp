@@ -110,12 +110,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	retval		= WSAAsyncSelect(listen_sock, hWnd, WM_SOCKET, FD_ACCEPT | FD_CLOSE);
 	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
-	//bind()
+	
 	SOCKADDR_IN serveraddr;
 	ZeroMemory(&serveraddr, sizeof(serveraddr));
 	serveraddr.sin_family		= AF_INET;
 	serveraddr.sin_port			= htons(9000);
 	serveraddr.sin_addr.s_addr	= htonl(INADDR_ANY);
+
+	//bind()
 	retval		= bind(listen_sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("bind()");
 
@@ -204,11 +206,9 @@ VOID ProcessSocketMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return;
 		}
 
-
 		wsprintf(cBuf, _T("[TCP Server] Client accepted : IP address = %s, Port Number = %d\n"),
 			inet_ntoa(clientaddr.sin_addr),
 			ntohs(clientaddr.sin_port));
-		TextOut(hdc, 5, 5, cBuf, lstrlen(cBuf));
 
 		printf("[TCP Server] Client accepted : IP address = %s, Port Number = %d\n",
 			inet_ntoa(clientaddr.sin_addr),
@@ -337,10 +337,15 @@ VOID RemoveSocketInfo(SOCKET sock)
 	SOCKADDR_IN		clientaddr;
 	int addrlen		= sizeof(clientaddr);
 	getpeername(sock, (SOCKADDR*)&clientaddr, &addrlen);
-	printf("[TCP Server] Client Exit: IP address = %d, Port Number = %d\n", 
-		inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
+	printf("[TCP Server] Client Exit: IP address = %s, Port Number = %d\n", 
+		inet_ntoa(clientaddr.sin_addr), 
+		ntohs(clientaddr.sin_port));
 
+	map<int, SOCKETINFO*>::iterator it;
+	it		= m.find(sock);
 
+	if (it != m.end()) m.erase(it);
+/*
 	map<int, SOCKETINFO*>::iterator i;
 	
 	for (i = m.begin(); i != m.end(); i++)
@@ -350,6 +355,5 @@ VOID RemoveSocketInfo(SOCKET sock)
 			break;
 		}
 	}
-
-	m.erase(i);
+*/
 }

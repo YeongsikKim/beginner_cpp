@@ -3,8 +3,6 @@
 
 #include "stdafx.h"
 
-map<INT, SOCKETINFO*> socket_map;
-map<INT, SOCKETINFO*>::iterator it;
 
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -92,11 +90,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	SOCKETINFO *ptr;
-	SOCKET sockClient;
-	SOCKADDR_IN addrClient;
-	int iAddrlen;
-	int iRetval;
+	SOCKETINFO *ptr			= NULL;
+	SOCKET sockClient		= {0,};
+	SOCKADDR_IN addrClient	= {0,};
+	int iAddrlen			= 0;
+	int iRetval				= 0;
+	int iNameLen			= 0;
+
+	iNameLen				= strlen(ptr->buf);
 
 
 	switch (WSAGETSELECTEVENT (lParam))
@@ -121,13 +122,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			err_display("WSAAsyncSelect()");
 			RemoveSocketInfo(sockClient);
 		}
-		//Send Waiting Room Info
-
-
-
-
-
-
+		
 
 		break;
 	case FD_READ:
@@ -149,71 +144,91 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			return;
 		}
-		ptr->recvbytes		= iRetval;
-		if (ptr->buf[iRetval - 1] == '@')			//Confirm whether it is title of room or not.
+		
+
+		//Confirm request about room info
+		if (ptr->buf[1]	== '*')
 		{
-			ptr->buf[iRetval - 1] == '\0';
+			for (roomiter = Room_map.begin(); roomiter != Room_map.end(); roomiter++)
+			{
+				sprintf(ptr->buf, roomiter->second->cRoomName);
+				iNameLen				= strlen(ptr->buf);
+				ptr->buf[iNameLen + 1]	= roomiter->second->iNum;
+				ptr->buf[iNameLen + 2]	= roomiter->second->iPeopleIN;
+
+				send(ptr->sock, ptr->buf, strlen(ptr->buf) + 4, NULL);
+			}
+		}
+		//Confirm whether it is title of room or not.
+		else if (ptr->buf[iNameLen + 1] == '@')
+		{
+			ptr->buf[iNameLen + 1] = '\0';
 			CreateRoomInfo(ptr->buf, ptr);
+			
 			break;
 		}
+		//Confirm Join
+
+
+		//Chatting sending
 		else
 		{
+			ptr->recvbytes		= iRetval;
+
 			ptr->buf[iRetval]	= '\0';
 			iAddrlen			= sizeof(addrClient);
 			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
 			printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), ptr->buf);
-		}
 
-	case FD_WRITE:
-		ptr		= GetSocketInfo(wParam);
-		if (ptr->recvbytes <= ptr->sendbytes) return;
 
-		//Sending Data
-		iRetval		= send(ptr->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
-		if (iRetval == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() != WSAEWOULDBLOCK)
+			if (ptr->recvbytes <= ptr->sendbytes) return;
+
+			//Sending Data
+			iRetval		= send(ptr->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+			if (iRetval == SOCKET_ERROR)
 			{
-				err_display("send()");
-				RemoveSocketInfo(wParam);
-			}
-			return;
-		}
-
-		if (socket_map.begin() == socket_map.end()) {;}
-		else
-		{
-			for (it = socket_map.begin(); it != socket_map.end(); it++)
-			{
-				if (ptr->sock == it->second->sock){;}
-
-				else
+				if (WSAGetLastError() != WSAEWOULDBLOCK)
 				{
-					iRetval		= send(it->second->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
-					if (iRetval == SOCKET_ERROR)
-					{
-						if (WSAGetLastError() != WSAEWOULDBLOCK)
-						{
-							err_display("send()");
-						}
-						return;
-					}
+					err_display("send()");
+					RemoveSocketInfo(wParam);
 				}
-				
+				return;
 			}
-		}
-		//Check Bytes
-		ptr->sendbytes += iRetval;
-		if (ptr->recvbytes == ptr->sendbytes)
-		{
-			ptr->recvbytes = ptr->sendbytes = 0;
-			if (ptr->recvdelayed)
+
+			if (socket_map.begin() == socket_map.end()) {;}
+			else
 			{
-				ptr->recvdelayed = FALSE;
-				PostMessage(hWnd, WM_SOCKET, wParam, FD_READ);
+				for (it = socket_map.begin(); it != socket_map.end(); it++)
+				{
+					if (ptr->sock == it->second->sock){;}
+
+					else if (ptr->iRoomNumber == it->second->iRoomNumber)
+					{
+						iRetval		= send(it->second->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+						if (iRetval == SOCKET_ERROR)
+						{
+							if (WSAGetLastError() != WSAEWOULDBLOCK)
+							{
+								err_display("send()");
+							}
+							return;
+						}
+					}
+
+				}
 			}
+			//Check Bytes
+			ptr->sendbytes += iRetval;
+			if (ptr->recvbytes == ptr->sendbytes)
+			{
+				ptr->recvbytes = ptr->sendbytes = 0;
+				if (ptr->recvdelayed)
+				{
+					ptr->recvdelayed = FALSE;
+					PostMessage(hWnd, WM_SOCKET, wParam, FD_READ);
+				}
+			}			
 		}
-		
 		break;
 
 	case FD_CLOSE:

@@ -29,6 +29,22 @@ struct SOCKETINFO
 	BOOL recvdelayed;
 };
 
+
+struct _RoomInfo
+{
+	int iNum;
+	int iPeopleIN;
+	char cRoomName[BUFSIZE];
+};
+
+
+//Map
+extern map<INT, SOCKETINFO*> socket_map;
+extern map<INT, SOCKETINFO*>::iterator it;
+extern map<int, _RoomInfo*> Room_map;
+extern map<int, _RoomInfo*>::iterator roomiter;
+
+
 #include "aboutRoom.h"
 
 

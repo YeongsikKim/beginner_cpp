@@ -130,6 +130,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case FD_READ:
+		ZeroMemory(buf, sizeof(buf));
 		retval		= recv(sock, buf, BUFSIZE, 0);
 		if(retval == SOCKET_ERROR)
 		{
@@ -151,6 +152,8 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		retval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
 		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
+		break;
+
 	}
 }
 
@@ -164,7 +167,6 @@ VOID InitProc(HWND hDlg)
 	hOKbutton	= GetDlgItem(hDlg, IDOK);
 	SendMessage(hEdit2, EM_SETLIMITTEXT, BUFSIZE, 0);
 
-
 	//Socket()
 	sock		= socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
@@ -173,7 +175,6 @@ VOID InitProc(HWND hDlg)
 	serveraddr.sin_family		= AF_INET;
 	serveraddr.sin_port			= htons(9000);
 	serveraddr.sin_addr.s_addr	= inet_addr("127.0.0.1");
-
 
 	//WSAAsyncSelect()
 	retval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
@@ -189,7 +190,6 @@ VOID InitProc(HWND hDlg)
 		}
 		return;
 	}
-
 
 
 
