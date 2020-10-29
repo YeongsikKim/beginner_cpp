@@ -7,7 +7,7 @@
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	int retval;
+	int iRet = 0;
 
 	//Window class Enrolls
 	WNDCLASS wcs;
@@ -21,45 +21,61 @@ int _tmain(int argc, _TCHAR* argv[])
 	wcs.lpszClassName	= L"TCP Server";
 	wcs.lpszMenuName	= NULL;
 	wcs.style			= CS_HREDRAW | CS_VREDRAW;
-	if (RegisterClass(&wcs) == 0) return -1;
+
+	if (RegisterClass(&wcs) == 0)
+	{
+		return -1;
+	}
 
 
 	//Create Window
-	HWND hWnd		= CreateWindow(L"TCP Server", L"TCP Server", WS_DISABLED, 0, 0, 600, 300, NULL, (HMENU)NULL, NULL, NULL);
-	if (hWnd == NULL) return -1;
+	HWND hWnd = CreateWindow(L"TCP Server", L"TCP Server", WS_DISABLED, 0, 0, 600, 300, NULL, (HMENU)NULL, NULL, NULL);
+
+	if (hWnd == NULL) 
+		return -1;
+
 	ShowWindow(hWnd, SW_HIDE);
 	UpdateWindow(hWnd);
 
-
 	//WinSock initialization
-	WSADATA	wsa		= {0,};
-	if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) return -1;
+	WSADATA	wsa	= {0,};
+
+	if (WSAStartup(MAKEWORD(2,2), &wsa) != 0)
+		return -1;
 
 	//socket()
-	SOCKET listen_sock		= socket(AF_INET, SOCK_STREAM, 0);
-	if (listen_sock == INVALID_SOCKET) err_quit("socket()");
+	SOCKET listen_sock	= socket(AF_INET, SOCK_STREAM, 0);
+
+	if (listen_sock == INVALID_SOCKET) 
+		err_quit("socket()");
 
 	//WSAAsyncSelect()
-	retval			= WSAAsyncSelect(listen_sock, hWnd, WM_SOCKET, FD_ACCEPT | FD_CLOSE);
-	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
+	iRet = WSAAsyncSelect(listen_sock, hWnd, WM_SOCKET, FD_ACCEPT | FD_CLOSE);
 
+	if (iRet == SOCKET_ERROR) 
+		err_quit("WSAAsyncSelect()");
 
 	//bind()
-	SOCKADDR_IN serveraddr;
-	ZeroMemory (&serveraddr, sizeof(serveraddr));
+	SOCKADDR_IN serveraddr = {0,};
+	
 	serveraddr.sin_family		= AF_INET;
 	serveraddr.sin_port			= htons(9000);
 	serveraddr.sin_addr.s_addr	= htonl(INADDR_ANY);
-	retval		= bind(listen_sock, (const sockaddr*)&serveraddr, sizeof(serveraddr));
-	if (retval == SOCKET_ERROR) err_quit("bind()");
 
+	iRet = bind(listen_sock, (const sockaddr*)&serveraddr, sizeof(serveraddr));
+
+	if (iRet == SOCKET_ERROR) 
+		err_quit("bind()");
 
 	//listen()
-	retval			= listen(listen_sock, SOMAXCONN);
-	if (retval == SOCKET_ERROR) err_quit("listen()");
+	iRet = listen(listen_sock, SOMAXCONN);
+
+	if (iRet == SOCKET_ERROR) 
+		err_quit("listen()");
 
 	//Message Loop
-	MSG msg;
+	MSG msg = {0,};
+
 	while(GetMessage(&msg, 0, 0, 0) > 0)
 	{
 		TranslateMessage(&msg);
@@ -75,13 +91,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
+	case WM_CREATE : 
+		break;
+
 	case WM_SOCKET:
 		ProcessSocketMessage(hWnd, uMsg, wParam, lParam);
-		return 0;
+		break;
 		
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		return 0;
+		break;
 	}
 	
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -90,15 +109,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	LPUSERINFO pUserInfo	= NULL;
 	SOCKETINFO *ptr			= NULL;
 	SOCKET sockClient		= {0,};
+	SOCKET sockAnother		= {0,};
 	SOCKADDR_IN addrClient	= {0,};
 	int iAddrlen			= 0;
 	int iRetval				= 0;
 	int iNameLen			= 0;
 
-	iNameLen				= strlen(ptr->buf);
 
+	if (ptr != NULL)
+	{
+		iNameLen				= strlen(ptr->buf);
+	}
 
 	switch (WSAGETSELECTEVENT (lParam))
 	{
@@ -115,6 +139,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		printf("[TCP Server] Client Accept: IP address = %s Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
 		AddSocketInfo(sockClient);
+		AddUserInfo(&addrClient);
 
 		iRetval = WSAAsyncSelect(sockClient, hWnd, WM_SOCKET, FD_READ|FD_WRITE|FD_CLOSE);
 		if (iRetval == SOCKET_ERROR)
@@ -149,12 +174,12 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		//Confirm request about room info
 		if (ptr->buf[1]	== '*')
 		{
-			for (roomiter = Room_map.begin(); roomiter != Room_map.end(); roomiter++)
+			for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
 			{
-				sprintf(ptr->buf, roomiter->second->cRoomName);
+				sprintf(ptr->buf, iterRoom->second->cRoomName);
 				iNameLen				= strlen(ptr->buf);
-				ptr->buf[iNameLen + 1]	= roomiter->second->iNum;
-				ptr->buf[iNameLen + 2]	= roomiter->second->iPeopleIN;
+				ptr->buf[iNameLen + 1]	= iterRoom->second->iNum;
+				ptr->buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
 
 				send(ptr->sock, ptr->buf, strlen(ptr->buf) + 4, NULL);
 			}
@@ -163,14 +188,11 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		else if (ptr->buf[iNameLen + 1] == '@')
 		{
 			ptr->buf[iNameLen + 1] = '\0';
-			CreateRoomInfo(ptr->buf, ptr);
+			getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
+			CreateRoomInfo(ptr->buf, addrClient);
 			
 			break;
-		}
-		//Confirm Join
-
-
-		//Chatting sending
+		}		//Confirm Join
 		else
 		{
 			ptr->recvbytes		= iRetval;
@@ -178,6 +200,15 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ptr->buf[iRetval]	= '\0';
 			iAddrlen			= sizeof(addrClient);
 			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+
+			pUserInfo	= GetUserInfo(&addrClient);
+
+			if ( pUserInfo == NULL )
+			{
+
+				// 贸府 鞘夸....
+			}
+
 			printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), ptr->buf);
 
 
@@ -198,20 +229,29 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (socket_map.begin() == socket_map.end()) {;}
 			else
 			{
-				for (it = socket_map.begin(); it != socket_map.end(); it++)
+				for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 				{
-					if (ptr->sock == it->second->sock){;}
+					if (inet_ntoa(addrClient.sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr)){;}
 
-					else if (ptr->iRoomNumber == it->second->iRoomNumber)
+					else if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0) //NOT Waiting room
 					{
-						iRetval		= send(it->second->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
-						if (iRetval == SOCKET_ERROR)
+						sockAnother = GetSock(iterUser->second);
+
+						if ( sockAnother )
 						{
-							if (WSAGetLastError() != WSAEWOULDBLOCK)
+							iRetval		= send(sockAnother, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+							if (iRetval == SOCKET_ERROR)
 							{
-								err_display("send()");
+								if (WSAGetLastError() != WSAEWOULDBLOCK)
+								{
+									err_display("send()");
+								}
+								return;
 							}
-							return;
+						}
+						else
+						{
+							// 抗寇贸府
 						}
 					}
 
@@ -326,3 +366,71 @@ VOID err_display(int errcode)
 	printf("[Error] %s", (LPCTSTR)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
+
+
+VOID AddUserInfo(SOCKADDR_IN * pAddrClient)
+{
+	static int i		= 0;
+	
+	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
+	{
+		if (inet_ntoa(pAddrClient->sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr))
+		{
+			return;
+		}
+	}
+
+	i++;
+
+	LPUSERINFO pUserInfo		= NULL;
+	pUserInfo		= new USERINFO;
+	ZeroMemory(pUserInfo, sizeof(USERINFO));
+
+	memcpy(&(pUserInfo->addr), pAddrClient, sizeof(SOCKADDR_IN));
+	pUserInfo->iRoomNumber	= 0;
+	pUserInfo->iStatus		= 0;
+
+	mUSER.insert(pair<int, LPUSERINFO>(i, pUserInfo));
+}
+
+LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
+{
+	LPUSERINFO pReturn = NULL;
+
+	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
+	{
+		if (inet_ntoa(iterUser->second->addr.sin_addr) == inet_ntoa(pAddrClient->sin_addr))
+		{
+			pReturn = iterUser->second;
+			break;
+		}
+	}
+
+	return pReturn;
+}
+
+
+SOCKET GetSock(LPUSERINFO pUserInfo)
+{
+	SOCKET		hSock		= NULL;
+
+	int			iAddrlen	= 0;
+	SOCKADDR_IN pTempAddr	= {0,};
+
+	iAddrlen = sizeof(SOCKADDR_IN);
+
+	for (it = socket_map.begin(); it != socket_map.end(); it++)
+	{
+		getpeername(it->second->sock, (SOCKADDR*)&pTempAddr, &iAddrlen);
+
+		if (inet_ntoa(pTempAddr.sin_addr) == inet_ntoa(pUserInfo->addr.sin_addr))
+		{
+			hSock = it->second->sock;
+			break;
+		}
+	}
+
+
+	return hSock;
+}
+

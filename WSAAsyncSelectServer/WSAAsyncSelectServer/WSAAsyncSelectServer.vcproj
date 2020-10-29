@@ -217,6 +217,10 @@
 				RelativePath=".\targetver.h"
 				>
 			</File>
+			<File
+				RelativePath=".\WSAAsyncSelectServer.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="리소스 파일"

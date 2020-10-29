@@ -7,5 +7,7 @@
 
 map<INT, SOCKETINFO*> socket_map;
 map<INT, SOCKETINFO*>::iterator it;
-map<int, _RoomInfo*> Room_map;
-map<int, _RoomInfo*>::iterator roomiter;
+map<int, ROOMINFO*> Room_map;
+map<int, ROOMINFO*>::iterator iterRoom;
+map<int, LPUSERINFO> mUSER;
+map<int, LPUSERINFO>::iterator iterUser;

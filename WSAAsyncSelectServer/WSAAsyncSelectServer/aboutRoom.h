@@ -1,3 +1,4 @@
 #pragma once
 
-VOID CreateRoomInfo(char *buf, SOCKETINFO *ptr);
+
+BOOL CreateRoomInfo(char *buf, SOCKADDR_IN addrClient);

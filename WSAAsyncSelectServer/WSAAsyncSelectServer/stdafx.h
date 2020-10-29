@@ -4,6 +4,7 @@
 //
 
 #pragma once
+#pragma warning(disable:4996)
 
 #include "targetver.h"
 
@@ -25,12 +26,17 @@ struct SOCKETINFO
 	char buf[BUFSIZE+1];
 	int recvbytes;
 	int sendbytes;
-	int iRoomNumber;
 	BOOL recvdelayed;
 };
 
+typedef struct _USERINFO
+{
+	SOCKADDR_IN addr;
+	int iRoomNumber;
+	int iStatus;
+}USERINFO, *LPUSERINFO;
 
-struct _RoomInfo
+struct ROOMINFO
 {
 	int iNum;
 	int iPeopleIN;
@@ -41,25 +47,11 @@ struct _RoomInfo
 //Map
 extern map<INT, SOCKETINFO*> socket_map;
 extern map<INT, SOCKETINFO*>::iterator it;
-extern map<int, _RoomInfo*> Room_map;
-extern map<int, _RoomInfo*>::iterator roomiter;
+extern map<int, ROOMINFO*> Room_map;
+extern map<int, ROOMINFO*>::iterator iterRoom;
+extern map<int, LPUSERINFO> mUSER;
+extern map<int, LPUSERINFO>::iterator iterUser;
 
 
 #include "aboutRoom.h"
-
-
-//About Windows Message
-LRESULT CALLBACK WndProc(HWND, UINT,WPARAM, LPARAM);
-VOID ProcessSocketMessage(HWND, UINT, WPARAM, LPARAM);
-
-
-//Management Socket function
-BOOL AddSocketInfo(SOCKET sock);
-SOCKETINFO *GetSocketInfo(SOCKET sock);
-VOID RemoveSocketInfo(SOCKET sock);
-
-
-//Print Error
-VOID err_quit(char *msg);
-VOID err_display(char *msg);
-VOID err_display(int errcode);
+#include "WSAAsyncSelectServer.h"
