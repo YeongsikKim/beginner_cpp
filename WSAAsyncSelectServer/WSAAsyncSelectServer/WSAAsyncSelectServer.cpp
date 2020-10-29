@@ -119,10 +119,6 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	int iNameLen			= 0;
 
 
-	if (ptr != NULL)
-	{
-		iNameLen = strlen(ptr->buf);
-	}
 
 	switch (WSAGETSELECTEVENT (lParam))
 	{
@@ -152,14 +148,9 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case FD_READ:
 		ptr		= GetSocketInfo(wParam);
-		if (ptr->recvbytes > 0)
-		{
-			ptr->recvdelayed = TRUE;
-			return;
-		}
-
 		//Receive Data
 		iRetval	= recv(ptr->sock, ptr->buf, BUFSIZE, 0);
+		iNameLen				= strlen(ptr->buf);
 		if (iRetval == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -189,22 +180,23 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			ptr->buf[iNameLen + 1] = '\0';
 			getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
-			CreateRoomInfo(ptr->buf, addrClient);
+			CreateRoomInfo(ptr->buf, &addrClient);
 			
 			break;
 		}
 		else if (ptr->buf[2] == '^')		//Join the room
 		{
-			pUserInfo = GetUserInfo(&addrClient);
-			if (pUserInfo == NULL)
-			{
-				err_quit("Join()");
-			}
+			g_iTempRoomNumber = ptr->buf[0];
 			
-			pUserInfo->iRoomNumber = ptr->buf[0];
 		}
 		else
 		{
+			if (ptr->recvbytes > 0)
+			{
+				ptr->recvdelayed = TRUE;
+				return;
+			}
+
 			ptr->recvbytes		= iRetval;
 
 			ptr->buf[iRetval]	= '\0';
@@ -385,6 +377,7 @@ VOID AddUserInfo(SOCKADDR_IN * pAddrClient)
 	{
 		if (inet_ntoa(pAddrClient->sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr))
 		{
+			iterUser->second->iRoomNumber = g_iTempRoomNumber;
 			return;
 		}
 	}

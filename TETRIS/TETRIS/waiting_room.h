@@ -6,4 +6,4 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 VOID ViewRoomList(char *buf);
 VOID CreateRoom(HWND hDlg);
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-VOID JoinInTheRoom(int iItem);
+VOID JoinInTheRoom();

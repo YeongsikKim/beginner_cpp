@@ -52,6 +52,9 @@ extern map<int, ROOMINFO*>::iterator iterRoom;
 extern map<int, LPUSERINFO> mUSER;
 extern map<int, LPUSERINFO>::iterator iterUser;
 
+//global variable
+extern int g_iTempRoomNumber;
+
 
 #include "aboutRoom.h"
 #include "WSAAsyncSelectServer.h"

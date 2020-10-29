@@ -1,4 +1,4 @@
 #pragma once
 
 
-BOOL CreateRoomInfo(char *buf, SOCKADDR_IN addrClient);
+BOOL CreateRoomInfo(char *buf, SOCKADDR_IN *pAddrClient);

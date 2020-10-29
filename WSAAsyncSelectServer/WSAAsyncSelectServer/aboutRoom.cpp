@@ -2,8 +2,9 @@
 
 int g_iRoomIDX = 0;
 
-BOOL CreateRoomInfo(char * buf, SOCKADDR_IN addrClient)
+BOOL CreateRoomInfo(char * buf, SOCKADDR_IN *pAddrClient)
 {
+	
 	ROOMINFO *RoomInfo	= NULL;
 	RoomInfo			= new ROOMINFO;
 	ZeroMemory(RoomInfo, sizeof(ROOMINFO));
@@ -16,7 +17,7 @@ BOOL CreateRoomInfo(char * buf, SOCKADDR_IN addrClient)
 	g_iRoomIDX++;
 
 	RoomInfo->iNum	= g_iRoomIDX;
-	strcpy_s(RoomInfo->cRoomName, strlen(buf), buf);
+	strcpy_s(RoomInfo->cRoomName, strlen(buf) + 1, buf);
 	RoomInfo->iPeopleIN = 1;
 
 	Room_map.insert(pair<int, ROOMINFO*>(g_iRoomIDX, RoomInfo));
@@ -24,9 +25,10 @@ BOOL CreateRoomInfo(char * buf, SOCKADDR_IN addrClient)
  
 	for (iterUser = mUSER.begin(); iterUser !=  mUSER.end(); iterUser++)
 	{
-		if (inet_ntoa(addrClient.sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr))
+		if (inet_ntoa(pAddrClient->sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr))
 		{
 			iterUser->second->iRoomNumber = RoomInfo->iNum;
 		}
 	}
+	return TRUE;
 }
