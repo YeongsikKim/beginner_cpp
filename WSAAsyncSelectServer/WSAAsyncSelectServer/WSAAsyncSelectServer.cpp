@@ -181,6 +181,20 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ptr->buf[iNameLen + 1] = '\0';
 			getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
 			CreateRoomInfo(ptr->buf, &addrClient);
+
+			ZeroMemory(ptr->buf, BUFSIZE);
+			for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
+			{
+				sprintf(ptr->buf, iterRoom->second->cRoomName);
+				iNameLen				= strlen(ptr->buf);
+				ptr->buf[iNameLen + 1]	= iterRoom->second->iNum;
+				ptr->buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
+
+				for (it = socket_map.begin(); it != socket_map.end(); it++)
+				{
+					send(it->second->sock, ptr->buf, strlen(ptr->buf) + 4, NULL);
+				}
+			}
 			
 			break;
 		}
