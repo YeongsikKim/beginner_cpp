@@ -1,7 +1,7 @@
 #pragma once
 
 //Personnel
-#define MAX_PEOPLE		3
+#define MAX_PEOPLE		2
 
 
 //ChattingWnd.cpp define

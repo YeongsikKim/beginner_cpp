@@ -182,25 +182,42 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
 			CreateRoomInfo(ptr->buf, &addrClient);
 
-			ZeroMemory(ptr->buf, BUFSIZE);
-			for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
-			{
-				sprintf(ptr->buf, iterRoom->second->cRoomName);
-				iNameLen				= strlen(ptr->buf);
-				ptr->buf[iNameLen + 1]	= iterRoom->second->iNum;
-				ptr->buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
-
-				for (it = socket_map.begin(); it != socket_map.end(); it++)
-				{
-					send(it->second->sock, ptr->buf, strlen(ptr->buf) + 4, NULL);
-				}
-			}
+			RenewWaitingRoom();			
 			
 			break;
 		}
 		else if (ptr->buf[2] == ENTRANCE)		//Join the room
 		{
 			g_iTempRoomNumber = ptr->buf[0];
+
+			for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
+			{
+				if (iterRoom->second->iNum == (int)ptr->buf[0])
+				{
+					break;
+				}
+
+				if (iterRoom == Room_map.end())
+				{
+					err_quit("ENTRANCE()");
+				}
+				
+				if (iterRoom->second->iPeopleIN >= MAX_PEOPLE)
+				{
+					;
+				}
+				else
+				{
+					iterRoom->second->iPeopleIN++;
+				}
+			}
+
+			RenewWaitingRoom();
+		}
+		else if (ptr->buf[0] == QUITROOM && ptr->buf[1] == QUITROOM)
+		{
+			pUserInfo = GetUserInfo(ptr);
+			DeletePeople(pUserInfo->iRoomNumber);
 		}
 		else
 		{
@@ -425,6 +442,36 @@ LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
 }
 
 
+
+LPUSERINFO GetUserInfo(SOCKETINFO *pSoketInfo)
+{
+	LPUSERINFO lpUserinfo	= {0,};
+	SOCKADDR_IN addrClient	= {0,};
+	int iAddrSize			= 0;
+	
+	iAddrSize = sizeof(addrClient);
+
+	getpeername(pSoketInfo->sock, (SOCKADDR*)&addrClient, &iAddrSize);
+
+	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
+	{
+		if ((addrClient.sin_addr.s_addr) == (iterUser->second->addr.sin_addr.s_addr))
+		{
+			break;
+		}
+	}
+
+	if (iterUser == mUSER.end())
+	{
+		return NULL;
+	}
+	
+	lpUserinfo = iterUser->second;
+	
+	return lpUserinfo;
+}
+
+
 SOCKET GetSock(LPUSERINFO pUserInfo)
 {
 	SOCKET		hSock		= NULL;
@@ -449,3 +496,40 @@ SOCKET GetSock(LPUSERINFO pUserInfo)
 	return hSock;
 }
 
+VOID DeletePeople(int iRoomNumber)
+{
+	for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
+	{
+		if (iterRoom->second->iNum == iRoomNumber)
+		{
+			break;
+		}
+
+		if (iterRoom == Room_map.end())
+		{
+			return;
+		}
+
+		iterRoom->second->iPeopleIN--;
+	}
+}
+
+VOID RenewWaitingRoom()
+{
+	int iNameLen		= 0;
+	char buf[BUFSIZE]	= {0,};
+
+	for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
+	{
+		sprintf(buf, iterRoom->second->cRoomName);
+		iNameLen				= strlen(buf);
+		buf[iNameLen + 1]	= iterRoom->second->iNum;
+		buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
+
+		for (it = socket_map.begin(); it != socket_map.end(); it++)
+		{
+			send(it->second->sock, buf, strlen(buf) + 4, NULL);
+		}
+	}
+
+}

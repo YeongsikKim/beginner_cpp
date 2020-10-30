@@ -63,6 +63,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 	}
 
+	//Send buffer about decreasing the number of people in game room
+	ZeroMemory(buf, BUFSIZE);
+	buf[0] = '$';
+	buf[1] = '$';
+	buf[2] = '\0';
+	send(sock, buf, sizeof(char) * 3, NULL);
 
 	//Close Socket
 	closesocket(sock);
@@ -269,8 +275,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		return 0;
 	case WM_PAINT:
-		hdc = BeginPaint(hWnd, &ps);
-		// TODO: 여기에 그리기 코드를 추가합니다.
+		hdc = BeginPaint(hWnd, &ps);		
 		DrawScreen(hdc);
 		EndPaint(hWnd, &ps);
 		return 0;
@@ -280,6 +285,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			DeleteObject(hBit[i]);
 		}
+		
 		PostQuitMessage(0);
 		return 0;
 	default:

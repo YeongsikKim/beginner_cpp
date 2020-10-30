@@ -6,10 +6,11 @@
 
 
 //Personnel
-#define MAX_PEOPLE		3
+#define MAX_PEOPLE		2
 
 
 //Sign in buf
 #define REQUESTROOM	'*'
 #define ROOMTITLE	'@'
 #define ENTRANCE	'^'
+#define QUITROOM	'$'

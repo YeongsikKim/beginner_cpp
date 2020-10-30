@@ -21,5 +21,7 @@ VOID err_display(int errcode);
 //USER INFO
 VOID AddUserInfo(SOCKADDR_IN * pAddrClient);
 LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient);
-
+LPUSERINFO GetUserInfo(SOCKETINFO *pSoketInfo);
 SOCKET GetSock(LPUSERINFO pUserInfo);
+VOID DeletePeople(int iRoomNumber);
+VOID RenewWaitingRoom();
