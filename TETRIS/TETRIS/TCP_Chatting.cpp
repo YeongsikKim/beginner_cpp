@@ -174,7 +174,7 @@ VOID InitProc(HWND hDlg)
 	SOCKADDR_IN serveraddr = {0,};
 	serveraddr.sin_family		= AF_INET;
 	serveraddr.sin_port			= htons(9000);
-	serveraddr.sin_addr.s_addr	= inet_addr("192.168.100.166");
+	serveraddr.sin_addr.s_addr	= inet_addr("192.168.100.162");
 
 	//WSAAsyncSelect()
 	retval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
