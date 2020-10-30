@@ -163,7 +163,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		
 
 		//Confirm request about room info
-		if (ptr->buf[1]	== '*')
+		if (ptr->buf[1]	== REQUESTROOM)
 		{
 			for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
 			{
@@ -176,7 +176,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		//Confirm whether it is title of room or not.
-		else if (ptr->buf[iNameLen + 1] == '@')
+		else if (ptr->buf[iNameLen + 1] == ROOMTITLE)
 		{
 			ptr->buf[iNameLen + 1] = '\0';
 			getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
@@ -184,10 +184,9 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			
 			break;
 		}
-		else if (ptr->buf[2] == '^')		//Join the room
+		else if (ptr->buf[2] == ENTRANCE)		//Join the room
 		{
 			g_iTempRoomNumber = ptr->buf[0];
-			
 		}
 		else
 		{

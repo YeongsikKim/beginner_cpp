@@ -14,9 +14,8 @@
 #include <Windows.h>
 #include <map>
 
+#include "pre_define.h"
 
-#define BUFSIZE		512
-#define WM_SOCKET	(WM_USER+1)
 
 using namespace std;
 

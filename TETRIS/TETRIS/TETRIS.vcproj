@@ -292,6 +292,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\pre_define.h"
+				>
+			</File>
+			<File
 				RelativePath=".\small.ico"
 				>
 			</File>

@@ -21,12 +21,6 @@ BOOL CreateRoomInfo(char * buf, SOCKADDR_IN *pAddrClient)
 	Room_map.insert(pair<int, ROOMINFO*>(g_iRoomIDX, RoomInfo));
 	printf("Successfully Create Room!\n");
  
-	for (iterUser = mUSER.begin(); iterUser !=  mUSER.end(); iterUser++)
-	{
-		if (pAddrClient->sin_addr.s_addr == iterUser->second->addr.sin_addr.s_addr)
-		{
-			iterUser->second->iRoomNumber = RoomInfo->iNum;
-		}
-	}
+	g_iTempRoomNumber = g_iRoomIDX;
 	return TRUE;
 }
