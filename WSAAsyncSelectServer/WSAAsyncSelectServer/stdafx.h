@@ -54,6 +54,7 @@ extern map<int, LPUSERINFO>::iterator iterUser;
 
 //global variable
 extern int g_iTempRoomNumber;
+extern int g_iRoomIDX;
 
 
 #include "aboutRoom.h"

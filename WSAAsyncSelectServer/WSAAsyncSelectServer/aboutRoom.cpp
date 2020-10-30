@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-int g_iRoomIDX = 0;
-
 BOOL CreateRoomInfo(char * buf, SOCKADDR_IN *pAddrClient)
 {
 	
@@ -25,7 +23,7 @@ BOOL CreateRoomInfo(char * buf, SOCKADDR_IN *pAddrClient)
  
 	for (iterUser = mUSER.begin(); iterUser !=  mUSER.end(); iterUser++)
 	{
-		if (inet_ntoa(pAddrClient->sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr))
+		if (pAddrClient->sin_addr.s_addr == iterUser->second->addr.sin_addr.s_addr)
 		{
 			iterUser->second->iRoomNumber = RoomInfo->iNum;
 		}

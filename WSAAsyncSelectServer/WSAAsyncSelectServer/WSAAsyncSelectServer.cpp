@@ -232,7 +232,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 				{
-					if (inet_ntoa(addrClient.sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr)){;}
+					if (addrClient.sin_addr.s_addr == iterUser->second->addr.sin_addr.s_addr){;}
 
 					else if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0) //NOT Waiting room
 					{
@@ -375,7 +375,7 @@ VOID AddUserInfo(SOCKADDR_IN * pAddrClient)
 	
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
-		if (inet_ntoa(pAddrClient->sin_addr) == inet_ntoa(iterUser->second->addr.sin_addr))
+		if (pAddrClient->sin_addr.s_addr == iterUser->second->addr.sin_addr.s_addr)
 		{
 			iterUser->second->iRoomNumber = g_iTempRoomNumber;
 			return;
@@ -401,7 +401,7 @@ LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
 
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
-		if (inet_ntoa(iterUser->second->addr.sin_addr) == inet_ntoa(pAddrClient->sin_addr))
+		if (iterUser->second->addr.sin_addr.s_addr == pAddrClient->sin_addr.s_addr)
 		{
 			pReturn = iterUser->second;
 			break;
@@ -425,7 +425,7 @@ SOCKET GetSock(LPUSERINFO pUserInfo)
 	{
 		getpeername(it->second->sock, (SOCKADDR*)&pTempAddr, &iAddrlen);
 
-		if (inet_ntoa(pTempAddr.sin_addr) == inet_ntoa(pUserInfo->addr.sin_addr))
+		if (pTempAddr.sin_addr.s_addr == pUserInfo->addr.sin_addr.s_addr)
 		{
 			hSock = it->second->sock;
 			break;

@@ -13,3 +13,4 @@ map<int, LPUSERINFO> mUSER;
 map<int, LPUSERINFO>::iterator iterUser;
 
 int g_iTempRoomNumber;
+int g_iRoomIDX;
