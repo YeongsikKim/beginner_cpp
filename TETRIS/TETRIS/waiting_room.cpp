@@ -170,18 +170,24 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 VOID ViewRoomList(char *buf)
 {
-	int i			= 0;
 	int iBufLen		= 0;
 	int iNum		= 0;
 	int iPeople		= 0;
 	char temp[10]	= {0,};
-	LVITEMA LI		= {0,};
+
 	LI.mask			= LVIF_TEXT;
+
+	
 
 	g_iSizeRoom++;
 
 	iBufLen			= strlen(buf);
 	iNum			= buf[iBufLen + 1];
+	if (iNum == 1)
+	{
+		g_iSizeRoom = 1;
+		LI.iItem = 0;
+	}
 	iPeople			= buf[iBufLen + 2];
 	buf[iBufLen + 1] = buf[iBufLen + 2] = '\0';
 

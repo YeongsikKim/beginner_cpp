@@ -29,3 +29,4 @@ SOCKET		sock;
 char		buf[BUFSIZE+1];
 HWND		hEdit1, hEdit2, hOKbutton;
 int			g_iSizeRoom;
+LVITEMA		LI;

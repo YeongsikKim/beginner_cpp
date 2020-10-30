@@ -195,24 +195,22 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (iterRoom->second->iNum == (int)ptr->buf[0])
 				{
 					break;
-				}
-
-				if (iterRoom == Room_map.end())
-				{
-					err_quit("ENTRANCE()");
-				}
-				
-				if (iterRoom->second->iPeopleIN >= MAX_PEOPLE)
-				{
-					;
-				}
-				else
-				{
-					iterRoom->second->iPeopleIN++;
-				}
+				}				
+			}
+			if (iterRoom == Room_map.end())
+			{
+				err_quit("ENTRANCE()");
 			}
 
-			RenewWaitingRoom();
+			if (iterRoom->second->iPeopleIN >= MAX_PEOPLE)
+			{
+				;
+			}
+			else
+			{
+				iterRoom->second->iPeopleIN++;
+				RenewWaitingRoom();
+			}
 		}
 		else if (ptr->buf[0] == QUITROOM && ptr->buf[1] == QUITROOM)
 		{
@@ -516,8 +514,9 @@ VOID DeletePeople(int iRoomNumber)
 
 VOID RenewWaitingRoom()
 {
-	int iNameLen		= 0;
-	char buf[BUFSIZE]	= {0,};
+	int iNameLen			= 0;
+	char buf[BUFSIZE]		= {0,};
+	LPUSERINFO lpUserInfo	= NULL;
 
 	for (iterRoom = Room_map.begin(); iterRoom != Room_map.end(); iterRoom++)
 	{
@@ -528,7 +527,12 @@ VOID RenewWaitingRoom()
 
 		for (it = socket_map.begin(); it != socket_map.end(); it++)
 		{
-			send(it->second->sock, buf, strlen(buf) + 4, NULL);
+			lpUserInfo = GetUserInfo(it->second);
+			
+			if (lpUserInfo->iRoomNumber == 0)
+			{
+				send(it->second->sock, buf, strlen(buf) + 4, NULL);
+			}
 		}
 	}
 
