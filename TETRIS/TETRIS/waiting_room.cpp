@@ -178,7 +178,7 @@ VOID ViewRoomList(char *buf)
 	LVITEMA LI		= {0,};
 	LI.mask			= LVIF_TEXT;
 
-	
+	g_iSizeRoom++;
 
 	iBufLen			= strlen(buf);
 	iNum			= buf[iBufLen + 1];
@@ -251,7 +251,7 @@ VOID JoinInTheRoom()
 {
 	ZeroMemory(buf, BUFSIZE);
 	
-	buf[0]		= iSaveRoomNumber + 1;
+	buf[0]		= g_iSizeRoom - iSaveRoomNumber;
 	buf[1]		= NULL;
 	buf[2]		= '^';
 	send(sock_room, buf, BUFSIZE, NULL);
