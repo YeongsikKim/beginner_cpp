@@ -5,9 +5,9 @@
 #include "stdafx.h"
 
 
-map<INT, SOCKETINFO*> socket_map;
-map<INT, SOCKETINFO*>::iterator it;
-map<int, ROOMINFO*> Room_map;
+map<int, SOCKETINFO*> mSOCKET;
+map<int, SOCKETINFO*>::iterator iterSocket;
+map<int, ROOMINFO*> mROOM;
 map<int, ROOMINFO*>::iterator iterRoom;
 map<int, LPUSERINFO> mUSER;
 map<int, LPUSERINFO>::iterator iterUser;

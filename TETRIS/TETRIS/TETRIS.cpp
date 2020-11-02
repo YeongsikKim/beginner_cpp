@@ -63,12 +63,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 	}
 
-	//Send buffer about decreasing the number of people in game room
-	ZeroMemory(buf, BUFSIZE);
-	buf[0] = '$';
-	buf[1] = '$';
-	buf[2] = '\0';
-	send(sock, buf, sizeof(char) * 3, NULL);
+
 
 	//Close Socket
 	closesocket(sock);
@@ -185,7 +180,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
-		// 메뉴의 선택 영역을 구문 분석합니다.
+		
 		switch (wmId)
 		{
 		case IDM_GAME_START:

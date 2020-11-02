@@ -81,5 +81,4 @@ extern SOCKET		sock_room;
 extern SOCKET sock;
 extern char buf[BUFSIZE+1];
 extern HWND hEdit1, hEdit2, hOKbutton;
-extern int g_iSizeRoom;
 extern LVITEMA LI;

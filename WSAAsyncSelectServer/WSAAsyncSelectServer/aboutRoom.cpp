@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-BOOL CreateRoomInfo(char * buf, SOCKADDR_IN *pAddrClient)
+BOOL CreateRoomInfo(char * buf)
 {
 	
 	ROOMINFO *RoomInfo	= NULL;
@@ -18,7 +18,7 @@ BOOL CreateRoomInfo(char * buf, SOCKADDR_IN *pAddrClient)
 	strcpy_s(RoomInfo->cRoomName, strlen(buf) + 1, buf);
 	RoomInfo->iPeopleIN = 1;
 
-	Room_map.insert(pair<int, ROOMINFO*>(g_iRoomIDX, RoomInfo));
+	mROOM.insert(pair<int, ROOMINFO*>(g_iRoomIDX, RoomInfo));
 	printf("Successfully Create Room!\n");
  
 	g_iTempRoomNumber = g_iRoomIDX;

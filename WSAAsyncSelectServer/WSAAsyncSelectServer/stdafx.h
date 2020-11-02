@@ -44,9 +44,9 @@ struct ROOMINFO
 
 
 //Map
-extern map<INT, SOCKETINFO*> socket_map;
-extern map<INT, SOCKETINFO*>::iterator it;
-extern map<int, ROOMINFO*> Room_map;
+extern map<int, SOCKETINFO*> mSOCKET;
+extern map<int, SOCKETINFO*>::iterator iterSocket;
+extern map<int, ROOMINFO*> mROOM;
 extern map<int, ROOMINFO*>::iterator iterRoom;
 extern map<int, LPUSERINFO> mUSER;
 extern map<int, LPUSERINFO>::iterator iterUser;

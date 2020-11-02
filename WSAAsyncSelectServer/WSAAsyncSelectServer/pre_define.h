@@ -13,4 +13,3 @@
 #define REQUESTROOM	'*'
 #define ROOMTITLE	'@'
 #define ENTRANCE	'^'
-#define QUITROOM	'$'

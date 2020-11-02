@@ -47,7 +47,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			EnableWindow(hOKbutton2, TRUE);
 			g_lpNIA	= (LPNMITEMACTIVATE)lParam;
 			ListView_GetItemText(hList, g_lpNIA->iItem, 0, Caption, 255);
-			iSaveRoomNumber = g_lpNIA->iItem;
+			iSaveRoomNumber = g_lpNIA->iItem + 1;
 
 			printf("Item : %d, %d, TEXT : %s\n", g_lpNIA->iItem, g_lpNIA->iSubItem, Caption);
 			break;
@@ -139,6 +139,7 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 	case FD_READ:
 		retval		= recv(sock_room, buf, BUFSIZE, 0);
+		//Exception
 		if(retval == SOCKET_ERROR)
 		{
 			err_display("recv()");
@@ -146,12 +147,17 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		}
 		else if (retval == 0) break;
 
-
-		if (buf[0] == NULL) break;
+		//listview initialization
+		if (buf[0] == '~')
+		{
+			ListView_DeleteAllItems(hList);
+			LI.iItem = 0;
+		}
 		else
 		{
 			ViewRoomList(buf);
 		}
+		
 		break;
 
 	case FD_CONNECT:
@@ -175,19 +181,15 @@ VOID ViewRoomList(char *buf)
 	int iPeople		= 0;
 	char temp[10]	= {0,};
 
-	LI.mask			= LVIF_TEXT;
-
 	
 
-	g_iSizeRoom++;
+	LI.mask			= LVIF_TEXT;
+
+
 
 	iBufLen			= strlen(buf);
 	iNum			= buf[iBufLen + 1];
-	if (iNum == 1)
-	{
-		g_iSizeRoom = 1;
-		LI.iItem = 0;
-	}
+
 	iPeople			= buf[iBufLen + 2];
 	buf[iBufLen + 1] = buf[iBufLen + 2] = '\0';
 
@@ -246,7 +248,7 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			return TRUE;
 		case IDCANCEL:
 			EndDialog(hDlg, 0);
-			return TRUE;
+			return FALSE;
 		}
 		return TRUE;
 	}
@@ -257,7 +259,7 @@ VOID JoinInTheRoom()
 {
 	ZeroMemory(buf, BUFSIZE);
 	
-	buf[0]		= g_iSizeRoom - iSaveRoomNumber;
+	buf[0]		= iSaveRoomNumber;
 	buf[1]		= NULL;
 	buf[2]		= '^';
 	send(sock_room, buf, BUFSIZE, NULL);
