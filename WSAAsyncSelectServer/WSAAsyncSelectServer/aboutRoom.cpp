@@ -7,7 +7,7 @@ BOOL CreateRoomInfo(char * buf)
 	RoomInfo			= new ROOMINFO;
 	ZeroMemory(RoomInfo, sizeof(ROOMINFO));
 
-	if ( buf == NULL)
+	if (buf == NULL)
 	{
 		return FALSE;
 	}

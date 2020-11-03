@@ -216,6 +216,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case IDM_GAME_EXIT:
+			send(sock, "/e", sizeof(char) * 3, NULL);
 			DestroyWindow(hWnd);
 			break;
 		default:

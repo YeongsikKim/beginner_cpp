@@ -176,9 +176,15 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		//Confirm whether it is title of room or not.
 		else if (ptr->buf[iNameLen + 1] == ROOMTITLE)
 		{
+			ZeroMemory(&addrClient, sizeof(SOCKADDR_IN));
+			iAddrlen = sizeof(addrClient);
+
 			ptr->buf[iNameLen + 1] = '\0';
 			getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
 			CreateRoomInfo(ptr->buf);
+
+			pUserInfo = GetUserInfo(&addrClient);
+			pUserInfo->iRoomNumber = g_iTempRoomNumber;
 
 	
 			RenewWaitingRoom();
@@ -198,7 +204,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					RenewWaitingRoom();
 				}							
 				else
-				{
+				{					
 					printf("The number of people in Room was full\n");
 					break;
 				}
@@ -206,15 +212,18 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			pUserInfo = GetUserInfo(ptr);
 			pUserInfo->iRoomNumber = g_iTempRoomNumber;
 		}
-		else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e')
+		else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e')	//Quit the room
 		{
-			iterUser = mUSER.find(ptr->sock);
-			if (iterUser->second->iRoomNumber != 0)
+			pUserInfo = GetUserInfo(ptr);
+			
+			iterRoom = mROOM.find(pUserInfo->iRoomNumber);
+			if (iterRoom != mROOM.end())
 			{
-				iterRoom = mROOM.find(iterUser->second->iRoomNumber);
-				if (iterRoom != mROOM.end())
+				iterRoom->second->iPeopleIN--;
+				if (iterRoom->second->iPeopleIN <= 0)
 				{
-					iterRoom->second->iPeopleIN--;
+					delete iterRoom->second;
+					mROOM.erase(iterRoom);
 				}
 			}
 		}
@@ -456,12 +465,10 @@ LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
 	{
 		if (iterUser->second->addr == pAddrClient->sin_addr.s_addr)
 		{
+			pReturn = iterUser->second;
 			break;
 		}
 	}
-	
-	pReturn = iterUser->second;
-
 	return pReturn;
 }
 
@@ -469,13 +476,22 @@ LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
 
 LPUSERINFO GetUserInfo(SOCKETINFO *pSoketInfo)
 {
-	LPUSERINFO lpUserinfo	= {0,};
+	LPUSERINFO lpUserinfo	= NULL;
+	SOCKADDR_IN addrClient	= {0,};
+	int iAddrlen			= 0;
 
-	iterUser = mUSER.find(pSoketInfo->sock);
-	if (iterUser != mUSER.end())
+	iAddrlen = sizeof(addrClient);
+	getpeername(pSoketInfo->sock, (sockaddr*)&addrClient, &iAddrlen);
+
+	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
-		lpUserinfo = iterUser->second;
+		if (iterUser->second->addr == addrClient.sin_addr.s_addr)
+		{
+			lpUserinfo = iterUser->second;
+			break;
+		}
 	}
+
 	
 	return lpUserinfo;
 }

@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <commctrl.h>
+#include <string>
 
 
 

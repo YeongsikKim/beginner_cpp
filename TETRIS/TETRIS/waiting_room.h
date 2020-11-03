@@ -7,3 +7,4 @@ VOID ViewRoomList(char *buf);
 VOID CreateRoom(HWND hDlg);
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 VOID JoinInTheRoom();
+int GetRoomNumber();

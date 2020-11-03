@@ -46,8 +46,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		case LVN_ITEMCHANGED:
 			EnableWindow(hOKbutton2, TRUE);
 			g_lpNIA	= (LPNMITEMACTIVATE)lParam;
-			ListView_GetItemText(hList, g_lpNIA->iItem, 0, Caption, 255);
-			iSaveRoomNumber = g_lpNIA->iItem + 1;
+			iSaveRoomNumber = GetRoomNumber();
 
 			printf("Item : %d, %d, TEXT : %s\n", g_lpNIA->iItem, g_lpNIA->iSubItem, Caption);
 			break;
@@ -265,3 +264,28 @@ VOID JoinInTheRoom()
 	send(sock_room, buf, BUFSIZE, NULL);
 }
 
+
+
+int GetRoomNumber()
+{
+	int iBuflength		= 0;
+	TCHAR cBuf[BUFSIZE]	= {0,};
+
+	iBuflength = wcslen(cBuf);
+
+	ListView_GetItemText(hList, g_lpNIA->iItem, 1, cBuf, 255);
+
+	if (iBuflength <= 1)
+	{
+		iSaveRoomNumber = (int) (cBuf[0] - '0');
+	}
+	else
+	{
+		iSaveRoomNumber--;
+		iSaveRoomNumber += (int)(cBuf[iBuflength - 0] - '0');
+		iSaveRoomNumber += (int)((cBuf[iBuflength - 1] - '0') * 10);
+		iSaveRoomNumber += (int)((cBuf[iBuflength - 2] - '0') * 100);
+	}
+
+	return iSaveRoomNumber;
+}
