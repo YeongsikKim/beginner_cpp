@@ -30,7 +30,7 @@ struct SOCKETINFO
 
 typedef struct _USERINFO
 {
-	SOCKADDR_IN addr;
+	ULONG addr;
 	int iRoomNumber;
 	int iStatus;
 }USERINFO, *LPUSERINFO;
