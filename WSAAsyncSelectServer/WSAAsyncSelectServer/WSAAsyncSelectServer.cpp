@@ -206,6 +206,18 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			pUserInfo = GetUserInfo(ptr);
 			pUserInfo->iRoomNumber = g_iTempRoomNumber;
 		}
+		else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e')
+		{
+			iterUser = mUSER.find(ptr->sock);
+			if (iterUser->second->iRoomNumber != 0)
+			{
+				iterRoom = mROOM.find(iterUser->second->iRoomNumber);
+				if (iterRoom != mROOM.end())
+				{
+					iterRoom->second->iPeopleIN--;
+				}
+			}
+		}
 		else
 		{
 			if (ptr->recvbytes > 0)
@@ -345,22 +357,28 @@ VOID RemoveSocketInfo(SOCKET sock)
 		mSOCKET.erase(iterSocket);
 	}
 	
+	closesocket(sock);
 /*
+	
 	//Remove USER Info
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
-		if (iterUser->second->addr == addrClient.sin_addr.s_addr)
+		if (iterUser->second->iRoomNumber != 0)
 		{
-			iRoomNumber = iterUser->second->iRoomNumber;
-			delete iterUser->second;
-			mUSER.erase(iterUser);
-			DeletePeople(iRoomNumber);
-			RenewWaitingRoom();
-			break;
+			if (iterUser->second->addr == addrClient.sin_addr.s_addr)
+			{
+				iRoomNumber = iterUser->second->iRoomNumber;
+				delete iterUser->second;
+				mUSER.erase(iterUser);
+				DeletePeople(iRoomNumber);
+				RenewWaitingRoom();
+				break;
+			}
 		}
 	}
-*/
+
 	return;
+	*/
 }
 
 
@@ -487,21 +505,6 @@ SOCKET GetSock(LPUSERINFO pUserInfo)
 	return hSock;
 }
 
-VOID DeletePeople(int iRoomNumber)
-{
-	iterRoom = mROOM.find(iRoomNumber);
-	if (iterRoom != mROOM.end())
-	{
-		iterRoom->second->iPeopleIN--;
-	}
-
-
-	if (iterRoom->second->iPeopleIN <= 0)
-	{
-		delete iterRoom->second;
-		mROOM.erase(iterRoom);
-	}
-}
 
 VOID RenewWaitingRoom()
 {
