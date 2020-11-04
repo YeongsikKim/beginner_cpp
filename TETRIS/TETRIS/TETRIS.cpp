@@ -139,18 +139,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-//
-//  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  목적: 주 창의 메시지를 처리합니다.
-//
-//  WM_COMMAND	- 응용 프로그램 메뉴를 처리합니다.
-//  WM_PAINT	- 주 창을 그립니다.
-//  WM_DESTROY	- 종료 메시지를 게시하고 반환합니다.
-//
-//
+HDC hSendDC;
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	BITMAPINFOHEADER bi = {0,};
+	BITMAP bitmap = {0,};
+	HDC MemDC	= {0,};
 	int i		= 0;
 	int trot	= 0;
 	int x		= 0;
@@ -159,6 +154,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	HDC hdc;
 	RECT crt;
+
+	BOOL bRet = 0;
+	HGDIOBJ old_obj = NULL;
+	HBITMAP hBitmap = NULL;
+	HDC hMemDC = NULL;
+	LPVOID lpBody = NULL;
 	
 	
 
@@ -166,7 +167,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 		hWndMain	= hWnd;
-		SetRect(&crt, 0, 0, (BW+12)*TS, (BH+2)*TS);
+		SetRect(&crt, 0, 0, (BW+12)*TS * 2, (BH+2)*TS);
 		AdjustWindowRect(&crt, WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, TRUE);
 		SetWindowPos(hWndMain, NULL, 0, 0, crt.right - crt.left, crt.bottom - crt.top, SWP_NOMOVE | SWP_NOZORDER);
 
@@ -222,13 +223,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
-		return 0;
+		break;
 	case WM_TIMER:
+//		hdc = GetDC(hWndMain);
+//		hSendDC = CreateCompatibleDC(hdc);
+//		GetObject(hSendDC, )
+//		BitBlt(hdc, 0, 0, (BW+12)*TS, (BH+2)*TS, hSendDC, (BW+12)*TS, 2, SRCCOPY);
 		if (MoveDown() == TRUE)
 		{
 			MakeNewBrick();
 		}
-		return 0;
+		DeleteDC(hSendDC);
+		break;
 	case WM_KEYDOWN:
 		if (GameStatus != RUNNING || brick == -1)
 		{
@@ -269,12 +275,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			MakeNewBrick();
 			break;
 		}
-		return 0;
+		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);		
 		DrawScreen(hdc);
+
+		hdc = GetDC(hWndMain);
+		hMemDC = CreateCompatibleDC(hdc);
+		hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
+		old_obj = SelectObject(hMemDC, hBitmap);
+
+		bRet = BitBlt(hMemDC, 0, 0, (BW+12)*TS, (BH+2)*TS, hdc, 0, 0, SRCCOPY);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		GetObject(hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
+		// Bitmap Header 정보 설정
+		
+		bi.biSize = sizeof(BITMAPINFOHEADER);
+		bi.biWidth = bitmap.bmWidth;
+		bi.biHeight = bitmap.bmHeight;
+		bi.biPlanes = 1;
+		bi.biBitCount = 0;
+		bi.biCompression = BI_RGB;
+		bi.biSizeImage = 0;
+		bi.biXPelsPerMeter = 0;
+		bi.biYPelsPerMeter = 0;
+		bi.biClrUsed = 0;
+		bi.biClrImportant = 0;
+		// 컬러 사이즈
+		
+		
+	
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		GetDIBits(hdc, hBitmap, 0, bi.biHeight, buf, NULL, DIB_RGB_COLORS);
+		buf[BUFSIZE] = 'b';
+		send(sock, buf, BUFSIZE + 1, NULL);
+
+		BitBlt(hdc, (BW+12)*TS + 4, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+
+		SelectObject(hMemDC, old_obj);
+		DeleteDC(hMemDC);
+		ReleaseDC(NULL, hdc);
+		DeleteObject(hBitmap);
+
 		EndPaint(hWnd, &ps);
-		return 0;
+		break;
 	case WM_DESTROY:
 		KillTimer(hWndMain, 1);
 		for (i = 0; i<11; i++)
@@ -283,7 +329,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		
 		PostQuitMessage(0);
-		return 0;
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -356,6 +402,7 @@ VOID DrawScreen(HDC hdc)
 	TextOut(hdc, (BW+4)*TS, 60, str, lstrlen(str));
 	wsprintf(str, TEXT("Bricks: %d   "), bricknum);
 	TextOut(hdc, (BW+4)*TS, 80, str, lstrlen(str));
+
 }
 
 VOID MakeNewBrick()
@@ -466,6 +513,7 @@ VOID DrawBitmap(HDC hdc, int x, int y, HBITMAP hBit)
 	by			= bit.bmHeight;
 
 	BitBlt(hdc, x, y, bx, by, MemDC, 0, 0, SRCCOPY);
+
 
 	SelectObject(MemDC, OldBitmap);
 	DeleteDC(MemDC);

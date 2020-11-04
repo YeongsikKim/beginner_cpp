@@ -26,14 +26,13 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		case IDC_BUTTON1:
 			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAKING), NULL, DlgProc_MakingRoom);
 			EndDialog(hDlg, 0);
-			return TRUE;
+			break;
 		case IDOK:
 			JoinInTheRoom();
-			EndDialog(hDlg, 0);
-			return TRUE;
+			break;
 		case IDCANCEL:
 			exit(-1); 
-			return TRUE;
+			break;
 		}
 		return FALSE;
 	case WM_SOCKET:
@@ -151,6 +150,14 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		{
 			ListView_DeleteAllItems(hList);
 			LI.iItem = 0;
+		}
+		else if (buf[0] == '/' && buf[1] == 'f')
+		{
+			MessageBox(hDlg, _T("Can't Join this room"), NULL, MB_OK);
+		}
+		else if (buf[0] == '/' && buf[1] == 'i')
+		{
+			EndDialog(hDlg, 0);
 		}
 		else
 		{

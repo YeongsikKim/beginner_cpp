@@ -201,11 +201,13 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (iterRoom->second->iPeopleIN < MAX_PEOPLE)
 				{
 					iterRoom->second->iPeopleIN++;
+					send(ptr->sock, "/i", 3, NULL);
 					RenewWaitingRoom();
 				}							
 				else
 				{					
 					printf("The number of people in Room was full\n");
+					send(ptr->sock, "/f", 3, NULL);
 					break;
 				}
 			}
@@ -226,6 +228,10 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					mROOM.erase(iterRoom);
 				}
 			}
+		}
+		else if (ptr->buf[BUFSIZE] == 'b')
+		{
+			printf("%s", ptr->buf);
 		}
 		else
 		{
