@@ -29,3 +29,9 @@ SOCKET		sock;
 char		buf[BUFSIZE+1];
 HWND		hEdit1, hEdit2, hOKbutton;
 LVITEMA		LI;
+
+
+
+
+BITMAPINFOHEADER bi;
+LPBITMAPINFO lpHeader;

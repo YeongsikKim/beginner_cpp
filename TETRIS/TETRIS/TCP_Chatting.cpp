@@ -4,7 +4,9 @@
 #include "stdafx.h"
 
 
-
+LPVOID lpBody = NULL;
+BOOL bStatusREAD = NOTBMP;
+int iSize = 0;
 //int vsprintf(char *cbuf, const char *fmt, va_list arg);
 
 
@@ -26,7 +28,9 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case IDOK:
 			EnableWindow(hOKbutton, FALSE);
 			GetDlgItemTextA(hDlg, IDC_EDIT2, buf, BUFSIZE+1);
-			send(sock, buf, strlen(buf), 0);
+			buf[strlen(buf) + 1] = '/';
+			buf[strlen(buf) + 2] = 'c';
+			send(sock, buf, strlen(buf) + 3, 0);
 
 			SetFocus(hEdit2);
 			SendMessage(hEdit2, EM_SETSEL, 0, -1);
@@ -119,38 +123,86 @@ int recvn(SOCKET s, char *buf, int len, int flags)
 	return (len - left);
 }
 
+
 VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	int retval		= 0;
+	HBITMAP hOld_Bmp = NULL;
+
+	int iRetval		= 0;
+
+	HBITMAP hBitmap = NULL;
+	HDC hMemDC = NULL;
+	HDC hdc = NULL;
+	
 
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_CLOSE:
-		closesocket(sock);
+		//closesocket(sock);
 		break;
 
 	case FD_READ:
 		ZeroMemory(buf, sizeof(buf));
-		retval		= recv(sock, buf, BUFSIZE, 0);
-		if(retval == SOCKET_ERROR)
+		
+		if (bStatusREAD == NOTBMP)
+		{
+			iRetval = recv(sock, buf, BUFSIZE, 0);
+		}
+		else if (bStatusREAD == YESBMP)
+		{
+			lpBody = malloc(iSize);
+			iRetval = recv(sock, (LPSTR)lpBody, iSize, 0);
+		}
+		if(iRetval == SOCKET_ERROR)
 		{
 			err_display("recv()");
 			break;
 		}
-		else if (retval == 0) break;
+		else if (iRetval == 0) break;
 
-		buf[retval]	= '\0';
-		DisplayText("[TCP Client DATA] %s\r\n", buf);
+		if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'c')
+		{
+			buf[iRetval]	= '\0';
+			DisplayText("[TCP Client DATA] %s\r\n", buf);
 
 
-		EnableWindow(hOKbutton, true);
+			EnableWindow(hOKbutton, true);
+		}
+		else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 's')
+		{
+			buf[strlen(buf) + 1] = '\0';
+			buf[strlen(buf) + 2] = '\0';
+			iSize = atoi(buf);
+
+			bStatusREAD = YESBMP;
+		}
+		else if (bStatusREAD == YESBMP)
+		{
+			hdc = GetDC(hWndMain);
+
+			hMemDC = CreateCompatibleDC(NULL);
+			hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
+
+			SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, lpBody, lpHeader, DIB_RGB_COLORS);
+			SelectObject(hMemDC, hBitmap);
+
+			BitBlt(hdc, (BW+12)*TS + 4, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+			
+			free(lpBody);
+			DeleteDC(hMemDC);
+			DeleteObject(hBitmap);
+			
+
+			
+			bStatusREAD = NOTBMP;
+		}
 		break;
 
 	case FD_CONNECT:
 
 		//WSAAsyncSelect()
-		retval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
-		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
+		iRetval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);		
+		if (iRetval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 		break;
 

@@ -143,24 +143,27 @@ HDC hSendDC;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	BITMAPINFOHEADER bi = {0,};
-	BITMAP bitmap = {0,};
-	HDC MemDC	= {0,};
+	int iSize = 0;
+	int iPalSize = 0;
 	int i		= 0;
 	int trot	= 0;
 	int x		= 0;
 	int y		= 0;
+	int iRetval = 0;
 	int wmId, wmEvent;
 	PAINTSTRUCT ps;
 	HDC hdc;
 	RECT crt;
-
+	HDC hbitDC = NULL;
+	BITMAP bitmap = {0,};
+	HDC MemDC	= {0,};
 	BOOL bRet = 0;
 	HGDIOBJ old_obj = NULL;
 	HBITMAP hBitmap = NULL;
 	HDC hMemDC = NULL;
 	LPVOID lpBody = NULL;
-	
+
+
 	
 
 	switch (message)
@@ -177,6 +180,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			hBit[i]	= LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BITMAP1+i));
 		}
+
+
 		return 0;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -225,10 +230,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_TIMER:
-//		hdc = GetDC(hWndMain);
-//		hSendDC = CreateCompatibleDC(hdc);
-//		GetObject(hSendDC, )
-//		BitBlt(hdc, 0, 0, (BW+12)*TS, (BH+2)*TS, hSendDC, (BW+12)*TS, 2, SRCCOPY);
 		if (MoveDown() == TRUE)
 		{
 			MakeNewBrick();
@@ -277,9 +278,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_PAINT:
-		hdc = BeginPaint(hWnd, &ps);		
+		hdc = BeginPaint(hWnd, &ps);
 		DrawScreen(hdc);
 
+		ZeroMemory(buf, sizeof(buf));
 		hdc = GetDC(hWndMain);
 		hMemDC = CreateCompatibleDC(hdc);
 		hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
@@ -294,7 +296,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		bi.biWidth = bitmap.bmWidth;
 		bi.biHeight = bitmap.bmHeight;
 		bi.biPlanes = 1;
-		bi.biBitCount = 0;
+		bi.biBitCount = BIT_COUNT;
 		bi.biCompression = BI_RGB;
 		bi.biSizeImage = 0;
 		bi.biXPelsPerMeter = 0;
@@ -302,17 +304,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		bi.biClrUsed = 0;
 		bi.biClrImportant = 0;
 		// 컬러 사이즈
-		
-		
-	
 
+		iPalSize = (bi.biBitCount == 24 ? 0 : 1 << bi.biBitCount) * sizeof(RGBQUAD);
+		hbitDC = GetDC(NULL);
 
+		lpHeader = new BITMAPINFO;
+		ZeroMemory(lpHeader, sizeof(BITMAPINFO));
+		lpHeader->bmiHeader = bi;
+		GetDIBits(hbitDC, hBitmap, 0, bitmap.bmHeight, NULL, lpHeader, DIB_RGB_COLORS);
+		bi = lpHeader->bmiHeader;
+		if (bi.biSizeImage == 0)
+		{
+			// 해더 사이즈 설정이 안되면 강제 계산 설정
+			bi.biSizeImage = ((bitmap.bmWidth * bi.biBitCount + 31) & ~31) / 8 * bitmap.bmHeight;
+		}
+		iSize = bi.biSize + iPalSize + bi.biSizeImage;
+		lpBody = malloc(lpHeader->bmiHeader.biSizeImage);
+		GetDIBits(hbitDC, hBitmap, 0, lpHeader->bmiHeader.biHeight, lpBody, lpHeader, DIB_RGB_COLORS);
+
+		sprintf(buf, "%d", iSize);
+		buf[strlen(buf) + 1] = '/';
+		buf[strlen(buf) + 2] = 's';
+		send(sock, buf, strlen(buf) + 3, NULL);
+		send(sock, (LPSTR)lpBody, iSize, NULL);
+		
+		free(lpBody);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		GetDIBits(hdc, hBitmap, 0, bi.biHeight, buf, NULL, DIB_RGB_COLORS);
-		buf[BUFSIZE] = 'b';
-		send(sock, buf, BUFSIZE + 1, NULL);
-
-		BitBlt(hdc, (BW+12)*TS + 4, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
 
 		SelectObject(hMemDC, old_obj);
 		DeleteDC(hMemDC);

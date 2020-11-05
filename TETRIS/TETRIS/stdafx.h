@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <commctrl.h>
 #include <string>
+#include <wingdi.h>
 
 
 
@@ -83,3 +84,9 @@ extern SOCKET sock;
 extern char buf[BUFSIZE+1];
 extern HWND hEdit1, hEdit2, hOKbutton;
 extern LVITEMA LI;
+
+
+
+
+extern BITMAPINFOHEADER bi;
+extern LPBITMAPINFO lpHeader;

@@ -3,7 +3,8 @@
 
 #include "stdafx.h"
 
-
+int iSize = 0;
+BOOL bStatusREAD = NOTBMP;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -109,6 +110,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	char cTempbuf[100000]	= {0,};
 	LPUSERINFO pUserInfo	= NULL;
 	SOCKETINFO *ptr			= NULL;
 	SOCKET sockClient		= 0;
@@ -117,6 +119,10 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	int iAddrlen			= 0;
 	int iRetval				= 0;
 	int iNameLen			= 0;
+	LPVOID lpBody			= NULL;
+
+
+
 
 
 
@@ -143,25 +149,32 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			err_display("WSAAsyncSelect()");
 			RemoveSocketInfo(sockClient);
 		}
-		
-
 		break;
+
 	case FD_READ:
 		ptr		= GetSocketInfo(wParam);
 		//Receive Data
-		iRetval	= recv(ptr->sock, ptr->buf, BUFSIZE, 0);
-		iNameLen = strlen(ptr->buf);
+		if (bStatusREAD == NOTBMP)
+		{
+			iRetval	= recv(ptr->sock, ptr->buf, BUFSIZE, 0);
+			iNameLen = strlen(ptr->buf);
+		}
+		else if (bStatusREAD == YESBMP)
+		{
+			recv(ptr->sock, (LPSTR)lpBody, iSize, 0);
+		}
+		
 		if (iRetval == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
 			{
 				err_display("recv()");
 				RemoveSocketInfo(wParam);
-			}
+			}	
 			return;
 		}
 		//Confirm request about room info
-		if (ptr->buf[1]	== REQUESTROOM)
+		if (ptr->buf[1]	== REQUESTROOM && bStatusREAD == NOTBMP)
 		{
 			for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
 			{
@@ -174,7 +187,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		//Confirm whether it is title of room or not.
-		else if (ptr->buf[iNameLen + 1] == ROOMTITLE)
+		else if (ptr->buf[iNameLen + 1] == ROOMTITLE && bStatusREAD == NOTBMP)
 		{
 			ZeroMemory(&addrClient, sizeof(SOCKADDR_IN));
 			iAddrlen = sizeof(addrClient);
@@ -191,7 +204,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			
 			break;
 		}
-		else if (ptr->buf[2] == ENTRANCE)		//Join the room
+		else if (ptr->buf[2] == ENTRANCE && bStatusREAD == NOTBMP)		//Join the room
 		{
 			g_iTempRoomNumber = ptr->buf[0];
 
@@ -214,7 +227,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			pUserInfo = GetUserInfo(ptr);
 			pUserInfo->iRoomNumber = g_iTempRoomNumber;
 		}
-		else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e')	//Quit the room
+		else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e' && bStatusREAD == NOTBMP)	//Quit the room
 		{
 			pUserInfo = GetUserInfo(ptr);
 			
@@ -233,7 +246,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			printf("%s", ptr->buf);
 		}
-		else
+		else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 'c' && bStatusREAD == NOTBMP)
 		{
 			if (ptr->recvbytes > 0)
 			{
@@ -285,7 +298,9 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 						if ( sockAnother )
 						{
-							iRetval		= send(sockAnother, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+							ptr->buf[strlen(ptr->buf) + 1] = '/';
+							ptr->buf[strlen(ptr->buf) + 2] = 'c';
+							iRetval		= send(sockAnother, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes + 3, 0);
 							if (iRetval == SOCKET_ERROR)
 							{
 								if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -315,6 +330,64 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}			
 		}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 's')
+		{
+			ptr->buf[strlen(ptr->buf) + 1] = '\0';
+			ptr->buf[strlen(ptr->buf) + 2] = '\0';
+
+			iSize = atoi(ptr->buf);
+			lpBody = malloc(iSize);
+			bStatusREAD = YESBMP;
+		}
+		else
+		{
+			iAddrlen			= sizeof(addrClient);
+			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+
+			pUserInfo = GetUserInfo(&addrClient);
+
+		
+			if (mSOCKET.begin() == mSOCKET.end()) {;}
+			else
+			{
+				for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
+				{
+					if (addrClient.sin_addr.s_addr == iterUser->second->addr){;}
+
+					else if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0) //NOT Waiting room
+					{
+						sockAnother = GetSock(iterUser->second);
+
+						if ( sockAnother )
+						{
+							sprintf(cTempbuf, "%d", iSize);
+							cTempbuf[strlen(cTempbuf) + 1] = '/';
+							cTempbuf[strlen(cTempbuf) + 2] = 's';
+							iRetval		= send(sockAnother, cTempbuf, sizeof(cTempbuf), NULL);
+							iRetval		= send(sockAnother, (LPSTR)lpBody, iSize, 0);
+							printf("Sending about BMP\n");
+							if (iRetval == SOCKET_ERROR)
+							{
+								if (WSAGetLastError() != WSAEWOULDBLOCK)
+								{
+									err_display("send()");
+								}
+								return;
+							}
+						}
+						else
+						{
+							// 예외처리
+						}
+					}
+				}
+			}
+
+			free(lpBody);
+			bStatusREAD = NOTBMP;
+		}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		break;
 
 	case FD_CLOSE:

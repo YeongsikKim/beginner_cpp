@@ -16,3 +16,7 @@
 #define BH				20
 #define TS				24
 #define random(n) (rand()%n)
+
+#define BIT_COUNT		24
+#define NOTBMP			0
+#define YESBMP			1
