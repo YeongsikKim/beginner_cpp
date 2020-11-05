@@ -35,3 +35,11 @@ LVITEMA		LI;
 
 BITMAPINFOHEADER bi;
 LPBITMAPINFO lpHeader;
+
+extern LPVOID lpBody = NULL;
+extern HDC hCompare = NULL;
+extern HDC hTempDC = NULL;
+extern int iSize = 0;
+extern HDC hMemDC = NULL;
+extern HGDIOBJ old_obj = NULL;
+extern HBITMAP hBitmap = NULL;

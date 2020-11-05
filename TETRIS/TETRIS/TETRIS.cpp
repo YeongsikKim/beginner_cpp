@@ -4,6 +4,7 @@
 #include "stdafx.h"
 
 
+
 LPCTSTR			lpszClass = TEXT("Tetris3");
 tag_Status GameStatus;
 Point			Shape[][4][4]=
@@ -143,7 +144,6 @@ HDC hSendDC;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	int iSize = 0;
 	int iPalSize = 0;
 	int i		= 0;
 	int trot	= 0;
@@ -156,12 +156,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	RECT crt;
 	HDC hbitDC = NULL;
 	BITMAP bitmap = {0,};
-	HDC MemDC	= {0,};
 	BOOL bRet = 0;
-	HGDIOBJ old_obj = NULL;
-	HBITMAP hBitmap = NULL;
-	HDC hMemDC = NULL;
-	LPVOID lpBody = NULL;
+	
+	
 
 
 	
@@ -234,7 +231,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			MakeNewBrick();
 		}
-		DeleteDC(hSendDC);
 		break;
 	case WM_KEYDOWN:
 		if (GameStatus != RUNNING || brick == -1)
@@ -248,6 +244,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				nx--;
 				InvalidateRect(hWnd, NULL, FALSE);
+				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 			}
 			break;
 		case VK_RIGHT:
@@ -255,6 +252,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				nx++;
 				InvalidateRect(hWnd, NULL, FALSE);
+				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 			}
 			break;
 		case VK_UP:
@@ -263,35 +261,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				rot	= trot;
 				InvalidateRect(hWnd, NULL, FALSE);
+				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 			}
 			break;
 		case VK_DOWN:
 			if (MoveDown() == TRUE)
 			{
 				MakeNewBrick();
+				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 			}
 			break;
 		case VK_SPACE:
 			while(MoveDown() == FALSE){;}
 			MakeNewBrick();
+			SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 			break;
 		}
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		DrawScreen(hdc);
-
+		break;
+	case WM_VSTETRIS:
 		ZeroMemory(buf, sizeof(buf));
-		hdc = GetDC(hWndMain);
-		hMemDC = CreateCompatibleDC(hdc);
-		hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
+		hTempDC = GetDC(hWndMain);
+		hMemDC = CreateCompatibleDC(hTempDC);
+		hBitmap = CreateCompatibleBitmap(hTempDC, (BW+12)*TS, (BH+2)*TS);
+
 		old_obj = SelectObject(hMemDC, hBitmap);
 
-		bRet = BitBlt(hMemDC, 0, 0, (BW+12)*TS, (BH+2)*TS, hdc, 0, 0, SRCCOPY);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		bRet = BitBlt(hMemDC, 0, 0, (BW+12)*TS, (BH+2)*TS, hTempDC, 0, 0, SRCCOPY);			
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		GetObject(hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
 		// Bitmap Header 정보 설정
-		
+
 		bi.biSize = sizeof(BITMAPINFOHEADER);
 		bi.biWidth = bitmap.bmWidth;
 		bi.biHeight = bitmap.bmHeight;
@@ -326,17 +329,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		buf[strlen(buf) + 1] = '/';
 		buf[strlen(buf) + 2] = 's';
 		send(sock, buf, strlen(buf) + 3, NULL);
-		send(sock, (LPSTR)lpBody, iSize, NULL);
 		
-		free(lpBody);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		SelectObject(hMemDC, old_obj);
-		DeleteDC(hMemDC);
-		ReleaseDC(NULL, hdc);
-		DeleteObject(hBitmap);
-
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
 		EndPaint(hWnd, &ps);
+
 		break;
 	case WM_DESTROY:
 		KillTimer(hWndMain, 1);

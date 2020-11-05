@@ -196,6 +196,16 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			
 			bStatusREAD = NOTBMP;
 		}
+		else if ()
+		{
+			send(sock, (LPSTR)lpBody, iSize, NULL);
+			free(lpBody);
+			SelectObject(hMemDC, old_obj);
+			DeleteDC(hMemDC);
+			ReleaseDC(NULL, hTempDC);
+			DeleteObject(hBitmap);
+
+		}
 		break;
 
 	case FD_CONNECT:

@@ -5,6 +5,7 @@
 
 int iSize = 0;
 BOOL bStatusREAD = NOTBMP;
+LPVOID lpBody	= NULL;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -110,7 +111,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	char cTempbuf[100000]	= {0,};
+	char cTempbuf[10]	= {0,};
 	LPUSERINFO pUserInfo	= NULL;
 	SOCKETINFO *ptr			= NULL;
 	SOCKET sockClient		= 0;
@@ -119,7 +120,6 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	int iAddrlen			= 0;
 	int iRetval				= 0;
 	int iNameLen			= 0;
-	LPVOID lpBody			= NULL;
 
 
 
@@ -340,7 +340,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			lpBody = malloc(iSize);
 			bStatusREAD = YESBMP;
 		}
-		else
+		else if (bStatusREAD == YESBMP)
 		{
 			iAddrlen			= sizeof(addrClient);
 			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
@@ -371,7 +371,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 							{
 								if (WSAGetLastError() != WSAEWOULDBLOCK)
 								{
-									err_display("send()");
+									//err_display("send()");
 								}
 								return;
 							}

@@ -8,7 +8,7 @@
 #define MAX_LOADSTRING	100
 #define BUFSIZE			512
 #define WM_SOCKET		(WM_USER+1)
-#define WM_SOCKET2		(WM_USER+2)
+#define WM_VSTETRIS		(WM_USER+2)
 
 
 //TESTRIS.cpp define
