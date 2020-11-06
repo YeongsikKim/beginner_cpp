@@ -109,6 +109,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 
+int iFileSize;
+int PalSize;
+BITMAP bitmap;
+LPBITMAPINFO lpHeader;
+
 VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	char cTempbuf[10]	= {0,};
@@ -122,7 +127,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	int iNameLen			= 0;
 
 
-
+	ofstream stream;
 
 
 
@@ -161,7 +166,51 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		else if (bStatusREAD == YESBMP)
 		{
-			recv(ptr->sock, (LPSTR)lpBody, iSize, 0);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+			stream.open("c:\\beginnerC\\test1.bmp", ios::binary);
+			if (!stream.is_open())
+			{
+				cout << "File open error!!" << endl;
+				exit(-1);
+			}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+			recv(ptr->sock, (LPSTR)lpBody, iSize + 1, 0);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////			
+			BITMAPINFOHEADER bi;
+			bi.biSize = sizeof(BITMAPINFOHEADER);
+			bi.biWidth = bitmap.bmWidth;
+			bi.biHeight = bitmap.bmHeight;
+			bi.biPlanes = 1;
+			bi.biBitCount = BIT_COUNT;
+			bi.biCompression = BI_RGB;
+			bi.biSizeImage = 0;
+			bi.biXPelsPerMeter = 0;
+			bi.biYPelsPerMeter = 0;
+			bi.biClrUsed = 0;
+			bi.biClrImportant = 0;
+
+			PalSize = (bi.biBitCount == 24 ? 0 : 1 << bi.biBitCount) * sizeof(RGBQUAD);
+			iFileSize = bi.biSize + PalSize + bi.biSizeImage;
+
+			BITMAPFILEHEADER fh;
+			fh.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + PalSize;
+			fh.bfReserved1 = 0;
+			fh.bfReserved2 = 0;
+			fh.bfSize = iFileSize + sizeof(BITMAPFILEHEADER);
+			fh.bfType = 0x4d42;
+
+			stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
+
+			lpHeader = new BITMAPINFO;
+			ZeroMemory(lpHeader, sizeof(BITMAPINFO));
+			lpHeader->bmiHeader = bi;
+			bi = lpHeader->bmiHeader;
+
+			stream.write((LPSTR)&bi, sizeof(BITMAPINFOHEADER));
+			stream.write((LPSTR)lpBody, iFileSize);
+
+			stream.close();
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
 		
 		if (iRetval == SOCKET_ERROR)
@@ -328,17 +377,53 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					ptr->recvdelayed = FALSE;
 					PostMessage(hWnd, WM_SOCKET, wParam, FD_READ);
 				}
-			}			
+			}
 		}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 's')
+		else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 's' && bStatusREAD == NOTBMP)
 		{
+			iAddrlen			= sizeof(addrClient);
+			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+			pUserInfo = GetUserInfo(&addrClient);
+
 			ptr->buf[strlen(ptr->buf) + 1] = '\0';
 			ptr->buf[strlen(ptr->buf) + 2] = '\0';
 
 			iSize = atoi(ptr->buf);
 			lpBody = malloc(iSize);
 			bStatusREAD = YESBMP;
+			
+			ptr->buf[strlen(ptr->buf) + 1] = '/';
+			ptr->buf[strlen(ptr->buf) + 2] = 'p';
+			send(ptr->sock, ptr->buf, strlen(ptr->buf) + 3, NULL);
+
+
+			for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
+			{
+				if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0)
+				{
+					if (pUserInfo->addr != iterUser->second->addr)
+					{					
+						sockAnother = GetSock(iterUser->second);
+
+						if (sockAnother)
+						{
+							ptr->buf[strlen(ptr->buf) + 1] = '/';
+							ptr->buf[strlen(ptr->buf) + 2] = 's';
+							iRetval = send(sockAnother, ptr->buf, strlen(ptr->buf) + 3, NULL);
+							if (iRetval == SOCKET_ERROR)
+							{
+								if (WSAGetLastError() != WSAEWOULDBLOCK)
+								{
+									err_display("send()");
+								}
+								return;
+							}
+							printf("Send bmp Size\n");
+						}
+					}
+				}
+			}
 		}
 		else if (bStatusREAD == YESBMP)
 		{
@@ -360,21 +445,17 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						sockAnother = GetSock(iterUser->second);
 
 						if ( sockAnother )
-						{
-							sprintf(cTempbuf, "%d", iSize);
-							cTempbuf[strlen(cTempbuf) + 1] = '/';
-							cTempbuf[strlen(cTempbuf) + 2] = 's';
-							iRetval		= send(sockAnother, cTempbuf, sizeof(cTempbuf), NULL);
+						{							
 							iRetval		= send(sockAnother, (LPSTR)lpBody, iSize, 0);
-							printf("Sending about BMP\n");
 							if (iRetval == SOCKET_ERROR)
 							{
 								if (WSAGetLastError() != WSAEWOULDBLOCK)
 								{
-									//err_display("send()");
+									err_display("send()");
 								}
 								return;
 							}
+							printf("Sending BMP Body\n");
 						}
 						else
 						{

@@ -13,6 +13,8 @@
 #include <WinSock2.h>
 #include <Windows.h>
 #include <map>
+#include <iostream>
+#include <fstream>
 
 #include "pre_define.h"
 

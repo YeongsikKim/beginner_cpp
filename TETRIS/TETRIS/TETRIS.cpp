@@ -159,7 +159,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	BOOL bRet = 0;
 	
 	
-
+	ofstream stream;
 
 	
 
@@ -227,6 +227,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_TIMER:
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		if (MoveDown() == TRUE)
 		{
 			MakeNewBrick();
@@ -244,15 +247,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				nx--;
 				InvalidateRect(hWnd, NULL, FALSE);
-				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 			}
 			break;
 		case VK_RIGHT:
 			if (GetAround(nx + 1, ny, brick, rot) == EMPTY)
 			{
 				nx++;
-				InvalidateRect(hWnd, NULL, FALSE);
-				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+				InvalidateRect(hWnd, NULL, FALSE);			
 			}
 			break;
 		case VK_UP:
@@ -260,15 +261,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (GetAround(nx, ny, brick, trot) == EMPTY)
 			{
 				rot	= trot;
-				InvalidateRect(hWnd, NULL, FALSE);
-				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+				InvalidateRect(hWnd, NULL, FALSE);				
 			}
 			break;
 		case VK_DOWN:
 			if (MoveDown() == TRUE)
 			{
-				MakeNewBrick();
-				SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+				MakeNewBrick();			
 			}
 			break;
 		case VK_SPACE:
@@ -281,8 +280,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		DrawScreen(hdc);
+		SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+		EndPaint(hWnd, &ps);
 		break;
 	case WM_VSTETRIS:
+		stream.open("c:\\beginnerC\\test.bmp", ios::binary);
+		if (!stream.is_open())
+		{
+			cout << "File open error!!" << endl;
+			return FALSE;
+		}
+
+
 		ZeroMemory(buf, sizeof(buf));
 		hTempDC = GetDC(hWndMain);
 		hMemDC = CreateCompatibleDC(hTempDC);
@@ -291,10 +300,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		old_obj = SelectObject(hMemDC, hBitmap);
 
 		bRet = BitBlt(hMemDC, 0, 0, (BW+12)*TS, (BH+2)*TS, hTempDC, 0, 0, SRCCOPY);			
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		GetObject(hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
-		// Bitmap Header 정보 설정
 
+		GetObject(hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
+
+		// Bitmap Header 정보 설정
 		bi.biSize = sizeof(BITMAPINFOHEADER);
 		bi.biWidth = bitmap.bmWidth;
 		bi.biHeight = bitmap.bmHeight;
@@ -309,6 +318,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// 컬러 사이즈
 
 		iPalSize = (bi.biBitCount == 24 ? 0 : 1 << bi.biBitCount) * sizeof(RGBQUAD);
+
+		
+		fh.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + iPalSize;
+		fh.bfReserved1 = 0;
+		fh.bfReserved2 = 0;
+		fh.bfSize = iSize + sizeof(BITMAPFILEHEADER);
+		fh.bfType = 0x4d42;
+
+		stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
+
 		hbitDC = GetDC(NULL);
 
 		lpHeader = new BITMAPINFO;
@@ -325,15 +344,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		lpBody = malloc(lpHeader->bmiHeader.biSizeImage);
 		GetDIBits(hbitDC, hBitmap, 0, lpHeader->bmiHeader.biHeight, lpBody, lpHeader, DIB_RGB_COLORS);
 
-		sprintf(buf, "%d", iSize);
+		stream.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
+		stream.write((LPSTR)lpBody, iSize);
+		stream.close();
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		sprintf(buf, "%d", lpHeader->bmiHeader.biSizeImage);
 		buf[strlen(buf) + 1] = '/';
 		buf[strlen(buf) + 2] = 's';
 		send(sock, buf, strlen(buf) + 3, NULL);
-		
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-		EndPaint(hWnd, &ps);
-
 		break;
 	case WM_DESTROY:
 		KillTimer(hWndMain, 1);

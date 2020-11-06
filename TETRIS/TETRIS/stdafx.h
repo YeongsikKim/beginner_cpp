@@ -29,6 +29,8 @@
 #include <commctrl.h>
 #include <string>
 #include <wingdi.h>
+#include <iostream>
+#include <fstream>
 
 
 
@@ -39,6 +41,7 @@
 
 #include "pre_define.h"
 
+using namespace std;
 
 //Function of TETRIS
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -89,4 +92,18 @@ extern LVITEMA LI;
 
 
 extern BITMAPINFOHEADER bi;
+extern BITMAPFILEHEADER fh;
 extern LPBITMAPINFO lpHeader;
+
+extern LPVOID lpBody;
+extern HDC hCompare;
+extern HDC hTempDC;
+extern int iSize;
+extern HDC hMemDC;
+extern HGDIOBJ old_obj;
+extern HBITMAP hBitmap;
+
+
+
+extern int iRecvSize;
+extern LPVOID lpRecvBody;

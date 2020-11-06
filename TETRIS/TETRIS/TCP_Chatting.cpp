@@ -4,9 +4,7 @@
 #include "stdafx.h"
 
 
-LPVOID lpBody = NULL;
 BOOL bStatusREAD = NOTBMP;
-int iSize = 0;
 //int vsprintf(char *cbuf, const char *fmt, va_list arg);
 
 
@@ -125,15 +123,14 @@ int recvn(SOCKET s, char *buf, int len, int flags)
 
 
 VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	HBITMAP hOld_Bmp = NULL;
-
+{	
 	int iRetval		= 0;
-
 	HBITMAP hBitmap = NULL;
+	HBITMAP hOld_Bmp = NULL;
 	HDC hMemDC = NULL;
 	HDC hdc = NULL;
 	
+	ofstream stream;
 
 	switch (WSAGETSELECTEVENT(lParam))
 	{
@@ -150,8 +147,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else if (bStatusREAD == YESBMP)
 		{
-			lpBody = malloc(iSize);
-			iRetval = recv(sock, (LPSTR)lpBody, iSize, 0);
+			iRetval = recv(sock, (LPSTR)lpRecvBody, iRecvSize, 0);
 		}
 		if(iRetval == SOCKET_ERROR)
 		{
@@ -172,39 +168,49 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			buf[strlen(buf) + 1] = '\0';
 			buf[strlen(buf) + 2] = '\0';
-			iSize = atoi(buf);
+			iRecvSize = atoi(buf);
 
+			lpRecvBody = malloc(iRecvSize);
 			bStatusREAD = YESBMP;
 		}
-		else if (bStatusREAD == YESBMP)
+		else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'p')
 		{
-			hdc = GetDC(hWndMain);
-
-			hMemDC = CreateCompatibleDC(NULL);
-			hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
-
-			SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, lpBody, lpHeader, DIB_RGB_COLORS);
-			SelectObject(hMemDC, hBitmap);
-
-			BitBlt(hdc, (BW+12)*TS + 4, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
-			
-			free(lpBody);
-			DeleteDC(hMemDC);
-			DeleteObject(hBitmap);
-			
-
-			
-			bStatusREAD = NOTBMP;
-		}
-		else if ()
-		{
-			send(sock, (LPSTR)lpBody, iSize, NULL);
+			send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
 			free(lpBody);
 			SelectObject(hMemDC, old_obj);
 			DeleteDC(hMemDC);
 			ReleaseDC(NULL, hTempDC);
 			DeleteObject(hBitmap);
+		}
+		else if (bStatusREAD == YESBMP)
+		{
+			stream.open("c:\\beginnerC\\test3.bmp", ios::binary);
+			if (!stream.is_open())
+			{
+				cout << "File open error!!" << endl;
+				exit(-1);
+			}
 
+			stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
+
+			stream.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
+			stream.write((LPSTR)lpRecvBody, iRecvSize);
+			stream.close();
+
+			hdc = GetDC(hWndMain);
+
+			hMemDC = CreateCompatibleDC(NULL);
+			hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
+
+			SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, lpRecvBody, lpHeader, DIB_RGB_COLORS);
+			SelectObject(hMemDC, hBitmap);
+
+			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+			
+			free(lpRecvBody);
+			DeleteDC(hMemDC);
+			DeleteObject(hBitmap);
+			bStatusREAD = NOTBMP;
 		}
 		break;
 
