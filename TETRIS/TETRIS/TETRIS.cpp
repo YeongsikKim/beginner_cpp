@@ -142,6 +142,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 HDC hSendDC;
 
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	int iPalSize = 0;
@@ -159,7 +160,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	BOOL bRet = 0;
 	
 	
-	ofstream stream;
+
 
 	
 
@@ -348,14 +349,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		stream.write((LPSTR)lpBody, iSize);
 		stream.close();
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		streamSending.open("c:\\beginnerC\\test.bmp", ios::binary);
+		streamSending.seekg(0, std::ios::end);
 
+		iFileSize = streamSending.tellg();
+		streamSending.seekg(0, std::ios::beg);
+
+		lpBMPFile = malloc(iFileSize);
+		
+		streamSending.read((LPSTR)lpBMPFile, iFileSize);
+		streamSending.close();
+
+		streamTest.open("c:\\beginnerC\\test_TEST.bmp", ios::binary);
+		streamTest.write((LPSTR)lpBMPFile, iFileSize);
+		streamTest.close();
+
+		sprintf(buf, "%d", iFileSize);
+		buf[strlen(buf) + 1] = '/';
+		buf[strlen(buf) + 2] = 's';
+		send(sock, buf, strlen(buf) + 3, NULL);
+		break;
+		
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		/*
 		sprintf(buf, "%d", lpHeader->bmiHeader.biSizeImage);
 		buf[strlen(buf) + 1] = '/';
 		buf[strlen(buf) + 2] = 's';
 		send(sock, buf, strlen(buf) + 3, NULL);
 		break;
+		*/
 	case WM_DESTROY:
 		KillTimer(hWndMain, 1);
 		for (i = 0; i<11; i++)

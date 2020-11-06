@@ -130,7 +130,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	HDC hMemDC = NULL;
 	HDC hdc = NULL;
 	
-	ofstream stream;
+	ofstream streamRecv;
 
 	switch (WSAGETSELECTEVENT(lParam))
 	{
@@ -175,8 +175,11 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'p')
 		{
-			send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
+			//send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
+			send(sock, (LPSTR)lpBMPFile, iFileSize, NULL);
 			free(lpBody);
+			free(lpBMPFile);
+			
 			SelectObject(hMemDC, old_obj);
 			DeleteDC(hMemDC);
 			ReleaseDC(NULL, hTempDC);
@@ -184,18 +187,21 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else if (bStatusREAD == YESBMP)
 		{
-			stream.open("c:\\beginnerC\\test3.bmp", ios::binary);
-			if (!stream.is_open())
+			streamRecv.open("c:\\beginnerC\\testRecv.bmp", ios::binary);
+			if (!streamRecv.is_open())
 			{
 				cout << "File open error!!" << endl;
 				exit(-1);
 			}
-
+/*
 			stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
 
 			stream.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
 			stream.write((LPSTR)lpRecvBody, iRecvSize);
-			stream.close();
+*/
+			streamRecv.write((LPSTR)lpRecvBody, iRecvSize);
+			streamRecv.close();
+
 
 			hdc = GetDC(hWndMain);
 

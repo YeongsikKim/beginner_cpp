@@ -47,3 +47,12 @@ HBITMAP hBitmap;
 
 int iRecvSize;
 LPVOID lpRecvBody;
+
+
+LPVOID lpBMPFile;
+int iFileSize;
+
+
+ofstream stream;
+ifstream streamSending;
+ofstream streamTest;

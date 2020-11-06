@@ -107,3 +107,11 @@ extern HBITMAP hBitmap;
 
 extern int iRecvSize;
 extern LPVOID lpRecvBody;
+
+
+extern LPVOID lpBMPFile;
+extern int iFileSize;
+
+extern ofstream stream;
+extern ifstream streamSending;
+extern ofstream streamTest;
