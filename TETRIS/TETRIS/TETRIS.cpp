@@ -285,7 +285,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_VSTETRIS:
-		stream.open("c:\\beginnerC\\test.bmp", ios::binary);
+		stream.open("c:\\beginnerC\\capture.bmp", ios::binary);
 		if (!stream.is_open())
 		{
 			cout << "File open error!!" << endl;
@@ -349,7 +349,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		stream.write((LPSTR)lpBody, iSize);
 		stream.close();
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		streamSending.open("c:\\beginnerC\\test.bmp", ios::binary);
+		streamSending.open("c:\\beginnerC\\capture.bmp", ios::binary);
 		streamSending.seekg(0, std::ios::end);
 
 		iFileSize = streamSending.tellg();
@@ -357,10 +357,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		lpBMPFile = malloc(iFileSize);
 		
+		
 		streamSending.read((LPSTR)lpBMPFile, iFileSize);
 		streamSending.close();
 
-		streamTest.open("c:\\beginnerC\\test_TEST.bmp", ios::binary);
+		streamTest.open("c:\\beginnerC\\OpenBMP.bmp", ios::binary);
 		streamTest.write((LPSTR)lpBMPFile, iFileSize);
 		streamTest.close();
 

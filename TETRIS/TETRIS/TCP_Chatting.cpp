@@ -144,72 +144,76 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		if (bStatusREAD == NOTBMP)
 		{
 			iRetval = recv(sock, buf, BUFSIZE, 0);
+			if(iRetval == SOCKET_ERROR)
+			{
+				err_display("recv()");
+				break;
+			}
+
+
+			if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'c')
+			{
+				buf[iRetval]	= '\0';
+				DisplayText("[TCP Client DATA] %s\r\n", buf);
+
+
+				EnableWindow(hOKbutton, true);
+			}
+			else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 's')
+			{
+				buf[strlen(buf) + 1] = '\0';
+				buf[strlen(buf) + 2] = '\0';
+				iRecvSize = atoi(buf);
+
+				lpRecvBody = malloc(iRecvSize + 1);
+				bStatusREAD = YESBMP;
+			}
+			else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'p')
+			{
+				//send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
+				iRetval = send(sock, (LPSTR)lpBMPFile, iFileSize, NULL);
+				free(lpBody);
+				free(lpBMPFile);
+
+				SelectObject(hMemDC, old_obj);
+				DeleteDC(hMemDC);
+				ReleaseDC(NULL, hTempDC);
+				DeleteObject(hBitmap);
+			}
 		}
 		else if (bStatusREAD == YESBMP)
 		{
 			iRetval = recv(sock, (LPSTR)lpRecvBody, iRecvSize, 0);
-		}
-		if(iRetval == SOCKET_ERROR)
-		{
-			err_display("recv()");
-			break;
-		}
-		else if (iRetval == 0) break;
-
-		if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'c')
-		{
-			buf[iRetval]	= '\0';
-			DisplayText("[TCP Client DATA] %s\r\n", buf);
+			if(iRetval == SOCKET_ERROR)
+			{
+				err_display("recv()");
+				break;
+			}
 
 
-			EnableWindow(hOKbutton, true);
-		}
-		else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 's')
-		{
-			buf[strlen(buf) + 1] = '\0';
-			buf[strlen(buf) + 2] = '\0';
-			iRecvSize = atoi(buf);
-
-			lpRecvBody = malloc(iRecvSize);
-			bStatusREAD = YESBMP;
-		}
-		else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'p')
-		{
-			//send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
-			send(sock, (LPSTR)lpBMPFile, iFileSize, NULL);
-			free(lpBody);
-			free(lpBMPFile);
-			
-			SelectObject(hMemDC, old_obj);
-			DeleteDC(hMemDC);
-			ReleaseDC(NULL, hTempDC);
-			DeleteObject(hBitmap);
-		}
-		else if (bStatusREAD == YESBMP)
-		{
-			streamRecv.open("c:\\beginnerC\\testRecv.bmp", ios::binary);
+			streamRecv.open("c:\\beginnerC\\RecievedBMP.bmp", ios::binary);
 			if (!streamRecv.is_open())
 			{
 				cout << "File open error!!" << endl;
 				exit(-1);
 			}
 /*
-			stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
-
-			stream.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
-			stream.write((LPSTR)lpRecvBody, iRecvSize);
+			streamRecv.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
+			streamRecv.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
 */
 			streamRecv.write((LPSTR)lpRecvBody, iRecvSize);
 			streamRecv.close();
 
-
-			hdc = GetDC(hWndMain);
+			hdc = GetDC(hWndMain); 
 
 			hMemDC = CreateCompatibleDC(NULL);
 			hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
 
 			SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, lpRecvBody, lpHeader, DIB_RGB_COLORS);
 			SelectObject(hMemDC, hBitmap);
+
+			InvalidateRect(hWndMain, NULL, FALSE);
+			UpdateWindow(hWndMain);
 
 			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
 			

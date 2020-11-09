@@ -90,11 +90,10 @@ extern LVITEMA LI;
 
 
 
-
+//About Bitmap
 extern BITMAPINFOHEADER bi;
 extern BITMAPFILEHEADER fh;
 extern LPBITMAPINFO lpHeader;
-
 extern LPVOID lpBody;
 extern HDC hCompare;
 extern HDC hTempDC;
@@ -103,11 +102,8 @@ extern HDC hMemDC;
 extern HGDIOBJ old_obj;
 extern HBITMAP hBitmap;
 
-
-
 extern int iRecvSize;
 extern LPVOID lpRecvBody;
-
 
 extern LPVOID lpBMPFile;
 extern int iFileSize;

@@ -109,8 +109,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 
-int iFileSize;
-int PalSize;
 BITMAP bitmap;
 LPBITMAPINFO lpHeader;
 
@@ -126,8 +124,6 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	int iRetval				= 0;
 	int iNameLen			= 0;
 
-
-	ofstream stream;
 
 
 
@@ -159,280 +155,28 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case FD_READ:
 		ptr		= GetSocketInfo(wParam);
 		//Receive Data
-		if (bStatusREAD == NOTBMP)
+
+
+		if (bStatusREAD != NOTBMP)
 		{
-			iRetval	= recv(ptr->sock, ptr->buf, BUFSIZE, 0);
-			iNameLen = strlen(ptr->buf);
-		}
-		else if (bStatusREAD == YESBMP)
-		{
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-			stream.open("c:\\beginnerC\\test1.bmp", ios::binary);
-			if (!stream.is_open())
-			{
-				cout << "File open error!!" << endl;
-				exit(-1);
-			}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-			recv(ptr->sock, (LPSTR)lpBody, iSize + 1, 0);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////			
-			BITMAPINFOHEADER bi;
-			bi.biSize = sizeof(BITMAPINFOHEADER);
-			bi.biWidth = bitmap.bmWidth;
-			bi.biHeight = bitmap.bmHeight;
-			bi.biPlanes = 1;
-			bi.biBitCount = BIT_COUNT;
-			bi.biCompression = BI_RGB;
-			bi.biSizeImage = 0;
-			bi.biXPelsPerMeter = 0;
-			bi.biYPelsPerMeter = 0;
-			bi.biClrUsed = 0;
-			bi.biClrImportant = 0;
-
-			PalSize = (bi.biBitCount == 24 ? 0 : 1 << bi.biBitCount) * sizeof(RGBQUAD);
-			iFileSize = bi.biSize + PalSize + bi.biSizeImage;
-
-			BITMAPFILEHEADER fh;
-			fh.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + PalSize;
-			fh.bfReserved1 = 0;
-			fh.bfReserved2 = 0;
-			fh.bfSize = iFileSize + sizeof(BITMAPFILEHEADER);
-			fh.bfType = 0x4d42;
-
-			stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
-
-			lpHeader = new BITMAPINFO;
-			ZeroMemory(lpHeader, sizeof(BITMAPINFO));
-			lpHeader->bmiHeader = bi;
-			bi = lpHeader->bmiHeader;
-
-			stream.write((LPSTR)&bi, sizeof(BITMAPINFOHEADER));
-			stream.write((LPSTR)lpBody, iFileSize);
-
-			stream.close();
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-		}
-		
-		if (iRetval == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() != WSAEWOULDBLOCK)
-			{
-				err_display("recv()");
-				RemoveSocketInfo(wParam);
-			}	
-			return;
-		}
-		//Confirm request about room info
-		if (ptr->buf[1]	== REQUESTROOM && bStatusREAD == NOTBMP)
-		{
-			for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
-			{
-				sprintf(ptr->buf, iterRoom->second->cRoomName);
-				iNameLen				= strlen(ptr->buf);
-				ptr->buf[iNameLen + 1]	= iterRoom->second->iNum;
-				ptr->buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
-
-				send(ptr->sock, ptr->buf, strlen(ptr->buf) + 4, NULL);
-			}
-		}
-		//Confirm whether it is title of room or not.
-		else if (ptr->buf[iNameLen + 1] == ROOMTITLE && bStatusREAD == NOTBMP)
-		{
-			ZeroMemory(&addrClient, sizeof(SOCKADDR_IN));
-			iAddrlen = sizeof(addrClient);
-
-			ptr->buf[iNameLen + 1] = '\0';
-			getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
-			CreateRoomInfo(ptr->buf);
-
-			pUserInfo = GetUserInfo(&addrClient);
-			pUserInfo->iRoomNumber = g_iTempRoomNumber;
-
-	
-			RenewWaitingRoom();
-			
-			break;
-		}
-		else if (ptr->buf[2] == ENTRANCE && bStatusREAD == NOTBMP)		//Join the room
-		{
-			g_iTempRoomNumber = ptr->buf[0];
-
-			iterRoom = mROOM.find(g_iTempRoomNumber);
-			if (iterRoom != mROOM.end())
-			{
-				if (iterRoom->second->iPeopleIN < MAX_PEOPLE)
-				{
-					iterRoom->second->iPeopleIN++;
-					send(ptr->sock, "/i", 3, NULL);
-					RenewWaitingRoom();
-				}							
-				else
-				{					
-					printf("The number of people in Room was full\n");
-					send(ptr->sock, "/f", 3, NULL);
-					break;
-				}
-			}
-			pUserInfo = GetUserInfo(ptr);
-			pUserInfo->iRoomNumber = g_iTempRoomNumber;
-		}
-		else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e' && bStatusREAD == NOTBMP)	//Quit the room
-		{
-			pUserInfo = GetUserInfo(ptr);
-			
-			iterRoom = mROOM.find(pUserInfo->iRoomNumber);
-			if (iterRoom != mROOM.end())
-			{
-				iterRoom->second->iPeopleIN--;
-				if (iterRoom->second->iPeopleIN <= 0)
-				{
-					delete iterRoom->second;
-					mROOM.erase(iterRoom);
-				}
-			}
-		}
-		else if (ptr->buf[BUFSIZE] == 'b')
-		{
-			printf("%s", ptr->buf);
-		}
-		else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 'c' && bStatusREAD == NOTBMP)
-		{
-			if (ptr->recvbytes > 0)
-			{
-				ptr->recvdelayed = TRUE;
-				return;
-			}
-
-			ptr->recvbytes		= iRetval;
-
-			ptr->buf[iRetval]	= '\0';
-			iAddrlen			= sizeof(addrClient);
-			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
-
-			pUserInfo	= GetUserInfo(&addrClient);
-
-			if ( pUserInfo == NULL )
-			{
-				err_quit("GetUserInfo()");
-			}
-
-			printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), ptr->buf);
-
-
-			if (ptr->recvbytes <= ptr->sendbytes) return;
-
-			//Sending Data
-			iRetval		= send(ptr->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+			iRetval = recv(ptr->sock, (LPSTR)lpBody, iSize, 0);
+			ptr->recvbytes = iRetval;
 			if (iRetval == SOCKET_ERROR)
 			{
 				if (WSAGetLastError() != WSAEWOULDBLOCK)
 				{
-					err_display("send()");
+					err_display("recv()");
 					RemoveSocketInfo(wParam);
 				}
-				return;
 			}
 
-
-			if (mSOCKET.begin() == mSOCKET.end()) {;}
-			else
-			{
-				for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
-				{
-					if (addrClient.sin_addr.s_addr == iterUser->second->addr){;}
-
-					else if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0) //NOT Waiting room
-					{
-						sockAnother = GetSock(iterUser->second);
-
-						if ( sockAnother )
-						{
-							ptr->buf[strlen(ptr->buf) + 1] = '/';
-							ptr->buf[strlen(ptr->buf) + 2] = 'c';
-							iRetval		= send(sockAnother, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes + 3, 0);
-							if (iRetval == SOCKET_ERROR)
-							{
-								if (WSAGetLastError() != WSAEWOULDBLOCK)
-								{
-									err_display("send()");
-								}
-								return;
-							}
-						}
-						else
-						{
-							// 抗寇贸府
-						}
-					}
-
-				}
-			}
-			//Check Bytes
-			ptr->sendbytes += iRetval;
-			if (ptr->recvbytes == ptr->sendbytes)
-			{
-				ptr->recvbytes = ptr->sendbytes = 0;
-				if (ptr->recvdelayed)
-				{
-					ptr->recvdelayed = FALSE;
-					PostMessage(hWnd, WM_SOCKET, wParam, FD_READ);
-				}
-			}
-		}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 's' && bStatusREAD == NOTBMP)
-		{
-			iAddrlen			= sizeof(addrClient);
-			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
-			pUserInfo = GetUserInfo(&addrClient);
-
-			ptr->buf[strlen(ptr->buf) + 1] = '\0';
-			ptr->buf[strlen(ptr->buf) + 2] = '\0';
-
-			iSize = atoi(ptr->buf);
-			lpBody = malloc(iSize);
-			bStatusREAD = YESBMP;
-			
-			ptr->buf[strlen(ptr->buf) + 1] = '/';
-			ptr->buf[strlen(ptr->buf) + 2] = 'p';
-			send(ptr->sock, ptr->buf, strlen(ptr->buf) + 3, NULL);
-
-
-			for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
-			{
-				if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0)
-				{
-					if (pUserInfo->addr != iterUser->second->addr)
-					{					
-						sockAnother = GetSock(iterUser->second);
-
-						if (sockAnother)
-						{
-							ptr->buf[strlen(ptr->buf) + 1] = '/';
-							ptr->buf[strlen(ptr->buf) + 2] = 's';
-							iRetval = send(sockAnother, ptr->buf, strlen(ptr->buf) + 3, NULL);
-							if (iRetval == SOCKET_ERROR)
-							{
-								if (WSAGetLastError() != WSAEWOULDBLOCK)
-								{
-									err_display("send()");
-								}
-								return;
-							}
-							printf("Send bmp Size\n");
-						}
-					}
-				}
-			}
-		}
-		else if (bStatusREAD == YESBMP)
-		{
 			iAddrlen			= sizeof(addrClient);
 			getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
 
 			pUserInfo = GetUserInfo(&addrClient);
 
-		
+			send(ptr->sock, (LPSTR)lpBody, ptr->recvbytes, NULL);
+
 			if (mSOCKET.begin() == mSOCKET.end()) {;}
 			else
 			{
@@ -446,7 +190,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 						if ( sockAnother )
 						{							
-							iRetval		= send(sockAnother, (LPSTR)lpBody, iSize, 0);
+							iRetval		= send(sockAnother, (LPSTR)lpBody, ptr->recvbytes, 0);
 							if (iRetval == SOCKET_ERROR)
 							{
 								if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -459,7 +203,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						}
 						else
 						{
-							// 抗寇贸府
+							printf("bmp sockanother()\n");
 						}
 					}
 				}
@@ -468,9 +212,219 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			free(lpBody);
 			bStatusREAD = NOTBMP;
 		}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		break;
+		else if (bStatusREAD == NOTBMP)
+		{
+			iRetval	= recv(ptr->sock, ptr->buf, BUFSIZE, 0);
+			iNameLen = strlen(ptr->buf);
+			if (iRetval == SOCKET_ERROR)
+			{
+				if (WSAGetLastError() != WSAEWOULDBLOCK)
+				{
+					err_display("recv()");
+					RemoveSocketInfo(wParam);
+				}	
+				return;
+			}
+			//Confirm request about room info
+			if (ptr->buf[1]	== REQUESTROOM)
+			{
+				for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
+				{
+					sprintf(ptr->buf, iterRoom->second->cRoomName);
+					iNameLen				= strlen(ptr->buf);
+					ptr->buf[iNameLen + 1]	= iterRoom->second->iNum;
+					ptr->buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
 
+					send(ptr->sock, ptr->buf, strlen(ptr->buf) + 4, NULL);
+				}
+			}
+			//Confirm whether it is title of room or not.
+			else if (ptr->buf[iNameLen + 1] == ROOMTITLE)
+			{
+				ZeroMemory(&addrClient, sizeof(SOCKADDR_IN));
+				iAddrlen = sizeof(addrClient);
+
+				ptr->buf[iNameLen + 1] = '\0';
+				getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
+				CreateRoomInfo(ptr->buf);
+
+				pUserInfo = GetUserInfo(&addrClient);
+				pUserInfo->iRoomNumber = g_iTempRoomNumber;
+
+				RenewWaitingRoom();
+			}
+			//Join the room
+			else if (ptr->buf[2] == ENTRANCE)		
+			{
+				g_iTempRoomNumber = ptr->buf[0];
+
+				iterRoom = mROOM.find(g_iTempRoomNumber);
+				if (iterRoom != mROOM.end())
+				{
+					if (iterRoom->second->iPeopleIN < MAX_PEOPLE)
+					{
+						iterRoom->second->iPeopleIN++;
+						send(ptr->sock, "/i", 3, NULL);
+						RenewWaitingRoom();
+					}							
+					else
+					{					
+						printf("The number of people in Room was full\n");
+						send(ptr->sock, "/f", 3, NULL);
+						break;
+					}
+				}
+				pUserInfo = GetUserInfo(ptr);
+				pUserInfo->iRoomNumber = g_iTempRoomNumber;
+			}
+			//Quit the room
+			else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e')	
+			{
+				pUserInfo = GetUserInfo(ptr);
+
+				iterRoom = mROOM.find(pUserInfo->iRoomNumber);
+				if (iterRoom != mROOM.end())
+				{
+					iterRoom->second->iPeopleIN--;
+					if (iterRoom->second->iPeopleIN <= 0)
+					{
+						delete iterRoom->second;
+						mROOM.erase(iterRoom);
+					}
+				}
+			}
+			//about Chatting
+			else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 'c')
+			{
+				if (ptr->recvbytes > 0)
+				{
+					ptr->recvdelayed = TRUE;
+					return;
+				}
+
+				ptr->recvbytes		= iRetval;
+
+
+				iAddrlen			= sizeof(addrClient);
+				getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+
+				pUserInfo	= GetUserInfo(&addrClient);
+
+				if ( pUserInfo == NULL )
+				{
+					err_quit("GetUserInfo()");
+				}
+
+				printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), ptr->buf);
+
+
+				if (ptr->recvbytes <= ptr->sendbytes) return;
+
+				//Sending Data
+				iRetval		= send(ptr->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+				if (iRetval == SOCKET_ERROR)
+				{
+					if (WSAGetLastError() != WSAEWOULDBLOCK)
+					{
+						err_display("send()");
+						RemoveSocketInfo(wParam);
+					}
+					return;
+				}
+
+
+				if (mSOCKET.begin() == mSOCKET.end()) {;}
+				else
+				{
+					for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
+					{
+						if (addrClient.sin_addr.s_addr == iterUser->second->addr){;}
+
+						else if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0) //NOT Waiting room
+						{
+							sockAnother = GetSock(iterUser->second);
+
+							if ( sockAnother )
+							{
+								ptr->buf[strlen(ptr->buf) + 1] = '/';
+								ptr->buf[strlen(ptr->buf) + 2] = 'c';
+								iRetval		= send(sockAnother, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+								if (iRetval == SOCKET_ERROR)
+								{
+									if (WSAGetLastError() != WSAEWOULDBLOCK)
+									{
+										err_display("send()");
+									}
+									return;
+								}
+							}
+							else
+							{
+								printf("chatting sockanother()\n");
+							}
+						}
+
+					}
+				}
+				//Check Bytes
+				ptr->sendbytes += iRetval;
+				if (ptr->recvbytes == ptr->sendbytes)
+				{
+					ptr->recvbytes = ptr->sendbytes = 0;
+					if (ptr->recvdelayed)
+					{
+						ptr->recvdelayed = FALSE;
+						PostMessage(hWnd, WM_SOCKET, wParam, FD_READ);
+					}
+				}
+			}
+			else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 's')
+			{
+				iAddrlen			= sizeof(addrClient);
+				getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+				pUserInfo = GetUserInfo(&addrClient);
+
+				ptr->buf[strlen(ptr->buf) + 1] = '\0';
+				ptr->buf[strlen(ptr->buf) + 2] = '\0';
+
+				iSize = atoi(ptr->buf);
+				lpBody = malloc(iSize);
+
+				ptr->buf[strlen(ptr->buf) + 1] = '/';
+				ptr->buf[strlen(ptr->buf) + 2] = 'p';
+				send(ptr->sock, ptr->buf, strlen(ptr->buf) + 3, NULL);
+
+
+				for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
+				{
+					if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0)
+					{
+						if (pUserInfo->addr != iterUser->second->addr)
+						{					
+							sockAnother = GetSock(iterUser->second);
+
+							if (sockAnother)
+							{
+								cTempbuf[strlen(cTempbuf) + 1] = '/';
+								cTempbuf[strlen(cTempbuf) + 2] = 's';
+								iRetval = send(sockAnother, cTempbuf, strlen(cTempbuf) + 3, NULL);
+								if (iRetval == SOCKET_ERROR)
+								{
+									if (WSAGetLastError() != WSAEWOULDBLOCK)
+									{
+										err_display("send()");
+									}
+									return;
+								}
+								printf("Send bmp Size\n");
+							}
+						}
+					}
+				}
+				bStatusREAD = YESBMP;
+			}
+		}
+		break;
 	case FD_CLOSE:
 		RemoveSocketInfo(wParam);
 		break;
