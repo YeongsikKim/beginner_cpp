@@ -215,7 +215,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			InvalidateRect(hWndMain, NULL, FALSE);
 			UpdateWindow(hWndMain);
 
-			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+12)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
 			
 			free(lpRecvBody);
 			DeleteDC(hMemDC);

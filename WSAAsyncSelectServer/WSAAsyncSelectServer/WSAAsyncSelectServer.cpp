@@ -4,7 +4,7 @@
 #include "stdafx.h"
 
 int iSize = 0;
-BOOL bStatusREAD = NOTBMP;
+int iStatusREAD = NOTBMP;
 LPVOID lpBody	= NULL;
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -157,10 +157,11 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		//Receive Data
 
 
-		if (bStatusREAD != NOTBMP)
+		if (iStatusREAD == YESBMP)
 		{
 			iRetval = recv(ptr->sock, (LPSTR)lpBody, iSize, 0);
 			ptr->recvbytes = iRetval;
+
 			if (iRetval == SOCKET_ERROR)
 			{
 				if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -209,13 +210,21 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 
-			free(lpBody);
-			bStatusREAD = NOTBMP;
+
+			ptr->sendbytes += iRetval;
+			if (ptr->recvbytes == ptr->sendbytes)
+			{
+				ptr->recvbytes = ptr->sendbytes = 0;
+				free(lpBody);
+				iStatusREAD = NOTBMP;
+			}
 		}
-		else if (bStatusREAD == NOTBMP)
+		else if (iStatusREAD == NOTBMP)
 		{
+			ZeroMemory(ptr->buf, BUFSIZE);
 			iRetval	= recv(ptr->sock, ptr->buf, BUFSIZE, 0);
 			iNameLen = strlen(ptr->buf);
+
 			if (iRetval == SOCKET_ERROR)
 			{
 				if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -405,9 +414,9 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 							if (sockAnother)
 							{
-								cTempbuf[strlen(cTempbuf) + 1] = '/';
-								cTempbuf[strlen(cTempbuf) + 2] = 's';
-								iRetval = send(sockAnother, cTempbuf, strlen(cTempbuf) + 3, NULL);
+								ptr->buf[strlen(ptr->buf) + 1] = '/';
+								ptr->buf[strlen(ptr->buf) + 2] = 's';
+								iRetval = send(sockAnother, ptr->buf, strlen(ptr->buf) + 3, NULL);
 								if (iRetval == SOCKET_ERROR)
 								{
 									if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -421,7 +430,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						}
 					}
 				}
-				bStatusREAD = YESBMP;
+				iStatusREAD = YESBMP;
 			}
 		}
 		break;
