@@ -64,6 +64,30 @@ enum {EMPTY, BRICK, WALL = 10};
 enum tag_Status {GAMEOVER, RUNNING, PAUSE};
 
 
+
+//Packet
+typedef struct _Packet_Header
+{
+	int iFlag;
+	int iSize;
+}PACKET_HEADER, *LPPACKET_HEADER;
+
+typedef struct _Packet_Body
+{
+	UCHAR *ucData;
+	int iCurRecv;
+}PACKET_BODY, *LPPACKET_BODY;
+
+//Room info
+struct ROOMINFO
+{
+	int iNum;
+	int iPeopleIN;
+	char cRoomName[BUFSIZE];
+};
+
+
+
 //TETRIS Global Variable
 extern HINSTANCE	g_hInst;								
 extern HWND			hWndMain;

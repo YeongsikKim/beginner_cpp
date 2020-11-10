@@ -20,6 +20,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 	case WM_INITDIALOG:
 		InitProc_Waiting(hDlg);
 		return TRUE;
+
 	case WM_COMMAND:
 		switch(LOWORD(wParam))
 		{
@@ -35,6 +36,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			break;
 		}
 		return FALSE;
+
 	case WM_SOCKET:
 		ProcessSocketMessage_Room(hDlg, uMsg, wParam, lParam);
 		return TRUE;
@@ -50,13 +52,14 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			printf("Item : %d, %d, TEXT : %s\n", g_lpNIA->iItem, g_lpNIA->iSubItem, Caption);
 			break;
 		}
-	
 		break;
+
 	case WM_DESTROY:
 		EndDialog(hDlg, 0);
 		closesocket(sock_room);
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -147,7 +150,7 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 		//listview initialization
 		if (buf[0] == '~')
-		{
+		{ 
 			ListView_DeleteAllItems(hList);
 			LI.iItem = 0;
 		}
@@ -295,4 +298,77 @@ int GetRoomNumber()
 	}
 
 	return iSaveRoomNumber;
+}
+
+
+VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	SOCKET hSock = (SOCKET)wParam;
+	int iRecvLen = 0;
+	int iBodySize = 0;
+	int iMaxLen = 0;
+
+	LPPACKET_BODY pPacket = NULL;
+	LPPACKET_HEADER pHeader = NULL;
+	LPSTR pBody = NULL;
+
+
+	iMaxLen = BUFSIZE;
+
+	while(pPacket->iCurRecv < iMaxLen)
+	{
+		iRecvLen = recv(hSock, (LPSTR)(pPacket->ucData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
+		if (iRecvLen == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+				continue;
+			}
+		}
+
+		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
+
+		if (pPacket->iCurRecv >= sizeof(PACKET_HEADER))
+		{
+			if (!pHeader)
+			{
+				pHeader = (LPPACKET_HEADER) pPacket->ucData;
+				iMaxLen = pHeader->iSize;
+			}
+		}
+	}
+
+	pBody = (LPSTR) (pPacket->ucData + sizeof(PACKET_HEADER));
+	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
+
+
+	switch (pHeader->iFlag)
+	{
+	case WSABUFFER_RENEW:
+		RenewList(pHeader->iSize, pBody);
+		break;
+
+	case WSABUFFER_JOIN:
+		break;
+
+	default:
+		break;
+	}
+}
+
+
+VOID RenewList(int iSize, LPSTR pBody)
+{
+	int iNumRoom = 0;
+	int i = 0;
+
+	ListView_DeleteAllItems(hList);
+	LI.iItem = 0;
+
+	iNumRoom = iSize/(sizeof(ROOMINFO));
+
+	for (i = 1; i <= iNumRoom; i++)
+	{
+		
+	}
 }

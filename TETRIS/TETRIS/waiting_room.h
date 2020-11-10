@@ -8,3 +8,5 @@ VOID CreateRoom(HWND hDlg);
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 VOID JoinInTheRoom();
 int GetRoomNumber();
+
+VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam);

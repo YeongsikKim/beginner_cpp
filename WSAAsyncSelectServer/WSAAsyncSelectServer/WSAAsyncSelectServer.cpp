@@ -630,48 +630,34 @@ VOID RenewWaitingRoom()
 	LPUSERINFO lpUserInfo	= NULL;
 	SOCKET sock = 0;
 
+	LPPACKET_HEADER pHeader = NULL;
+	LPPACKET_BODY pPacket	= NULL;
+
+	LPSTR pBody = NULL;
+
+	pHeader = new PACKET_HEADER;
+	pPacket = new PACKET_BODY;
+
+	pHeader->iFlag = WSABUFFER_RENEW;
+	pHeader->iSize = (mROOM.size() * sizeof(ROOMINFO));
+
+	for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
+	{
+		sprintf(pBody, (LPSTR)iterRoom->second);
+	}
+	///////////////////////////////////////////////////////////////////////////////////방 정보를 모두 Sending 해야함
 
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
 		if (iterUser->second->iRoomNumber == 0)
 		{
 			sock = GetSock(iterUser->second);
-			send (sock, "~", sizeof(char) * 2, NULL);
-
-			for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
-			{
-				sprintf(buf, iterRoom->second->cRoomName);
-				iNameLen				= strlen(buf);
-				buf[iNameLen + 1]	= iterRoom->second->iNum;
-				buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
-
-
-				send(iterSocket->second->sock, buf, strlen(buf) + 4, NULL);
-			}		
+			send (sock, (LPSTR)pBody, pHeader->iSize, NULL);
 		}
 	}
 
-	/*
-	for (iterSocket = mSOCKET.begin(); iterSocket != mSOCKET.end(); iterSocket++)
-	{
-	lpUserInfo = GetUserInfo(iterSocket->second);
-
-	if (lpUserInfo->iRoomNumber == 0)
-	{
-	send(iterSocket->second->sock, "~", sizeof(char) * 2, NULL);
-	for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
-	{
-	sprintf(buf, iterRoom->second->cRoomName);
-	iNameLen				= strlen(buf);
-	buf[iNameLen + 1]	= iterRoom->second->iNum;
-	buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
-
-
-	send(iterSocket->second->sock, buf, strlen(buf) + 4, NULL);
-	}
-	}
-	}
-	*/
+	delete pHeader;
+	delete pPacket;
 }
 
 
@@ -771,7 +757,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	{
 		printf("Not responded\n");
 	}
-
+	//Setting Header
 	pSendHeader = (LPPACKET_HEADER)pRespBuf;
 	PBYTE pBdy = pRespBuf + sizeof(PACKET_HEADER);
 	pSendHeader->iSize = sizeof(PACKET_HEADER) + iBodySize;
@@ -784,17 +770,25 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		pUserInfo->iRoomNumber = g_iTempRoomNumber;
 
 		RenewWaitingRoom();
-		break;
+		return;
+
 	case WSABUFFER_CHATTING:
 		pSendHeader->iFlag = WSABUFFER_CHATTING;
 		break;
+
 	case WSABUFFER_IMAGE:
 		pSendHeader->iFlag = WSABUFFER_IMAGE;
 		break;
+
+	case WSABUFFER_RENEW:
+		RenewWaitingRoom();
+		return;
+
 	default:
 		break;
 	}
 
+	//Sending
 	do 
 	{
 		iSendLen = send(hClientSock, (LPSTR)pHeader + iSendTot, pSendHeader->iSize - iSendTot, NULL);

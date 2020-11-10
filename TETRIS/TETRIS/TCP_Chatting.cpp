@@ -272,3 +272,90 @@ VOID InitProc(HWND hDlg)
 
 
 }
+
+
+VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	HDC hdc = NULL;
+	SOCKET hSock = (SOCKET)wParam;
+	int iRecvLen = 0;
+	int iBodySize = 0;
+	int iMaxLen = 0;
+
+	LPPACKET_BODY pPacket = NULL;
+	LPPACKET_HEADER pHeader = NULL;
+	LPSTR pBody = NULL;
+
+	ofstream streamRecv;
+	
+	iMaxLen = BUFSIZE;
+
+	while(pPacket->iCurRecv < iMaxLen)
+	{
+		iRecvLen = recv(hSock, (LPSTR)(pPacket->ucData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
+		if (iRecvLen == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+				err_display("recv()");
+				continue;
+			}
+		}
+		
+		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
+
+		if (pPacket->iCurRecv >= sizeof(PACKET_HEADER))
+		{
+			if (!pHeader)
+			{
+				pHeader = (LPPACKET_HEADER) pPacket->ucData;
+				iMaxLen = pHeader->iSize;
+			}
+		}
+	}
+
+	pBody = (LPSTR) (pPacket->ucData + sizeof(PACKET_HEADER));
+	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
+	
+
+	switch (pHeader->iFlag)
+	{
+	case WSABUFFER_CHATTING:
+		DisplayText("[TCP Client DATA] %s\r\n", pBody);
+		EnableWindow(hOKbutton, true);
+		break;
+
+	case WSABUFFER_IMAGE:
+		streamRecv.open("c:\\beginnerC\\RecievedBMP.bmp", ios::binary);
+			if (!streamRecv.is_open())
+			{
+				cout << "File open error!!" << endl;
+				exit(-1);
+			}
+
+			streamRecv.write(pBody, iBodySize);
+			streamRecv.close();
+
+			hdc = GetDC(hWndMain); 
+
+			hMemDC = CreateCompatibleDC(NULL);
+			hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
+
+			SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, lpRecvBody, lpHeader, DIB_RGB_COLORS);
+			SelectObject(hMemDC, hBitmap);
+
+			InvalidateRect(hWndMain, NULL, FALSE);
+			UpdateWindow(hWndMain);
+
+			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+12)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+			
+			free(lpRecvBody);
+			DeleteDC(hMemDC);
+			DeleteObject(hBitmap);
+			bStatusREAD = NOTBMP;
+		break;
+
+	default:
+		break;
+	}
+}

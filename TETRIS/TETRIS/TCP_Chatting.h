@@ -22,3 +22,5 @@ VOID				err_display(char *msg);
 int recvn(SOCKET s, char *buf, int len, int flags);
 
 
+//
+VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam);
