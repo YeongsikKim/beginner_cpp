@@ -722,6 +722,9 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	LPPACKET_BODY pPacket = NULL;
 	LPPACKET_HEADER pHeader = NULL;
 
+	LPPACKET_BODY pSendPacket = NULL;
+	LPPACKET_HEADER pSendHeader = NULL;
+
 	pClientSocketInfo = GetSocketInfo(wParam);
 
 	while (pPacket->iCurRecv < iMaxLen)
@@ -759,6 +762,20 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	pBody = (LPSTR)(pPacket->ucData + sizeof(PACKET_HEADER));
 	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
 
+	PBYTE pRespBuf = NULL;
+	DWORD dwRespBufSize = 0;
+
+	dwRespBufSize = iBodySize + sizeof(PACKET_HEADER) + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+	if (!pRespBuf)
+	{
+		printf("Not responded\n");
+	}
+
+	pSendHeader = (LPPACKET_HEADER)pRespBuf;
+	PBYTE pBdy = pRespBuf + sizeof(PACKET_HEADER);
+	pSendHeader->iSize = sizeof(PACKET_HEADER) + iBodySize;
+
 	switch (pHeader->iFlag)
 	{
 	case WSABUFFER_ROOMNAME:
@@ -769,15 +786,20 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		RenewWaitingRoom();
 		break;
 	case WSABUFFER_CHATTING:
-		do 
-		{
-			iSendLen = send(hClientSock, (LPSTR))
-		} while ();
+		pSendHeader->iFlag = WSABUFFER_CHATTING;
 		break;
 	case WSABUFFER_IMAGE:
+		pSendHeader->iFlag = WSABUFFER_IMAGE;
 		break;
 	default:
 		break;
 	}
 
+	do 
+	{
+		iSendLen = send(hClientSock, (LPSTR)pHeader + iSendTot, pSendHeader->iSize - iSendTot, NULL);
+	} while (pSendHeader->iSize != iSendTot);
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
