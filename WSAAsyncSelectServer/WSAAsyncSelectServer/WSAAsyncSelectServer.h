@@ -26,3 +26,6 @@ LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient);
 LPUSERINFO GetUserInfo(SOCKETINFO *pSoketInfo);
 SOCKET GetSock(LPUSERINFO pUserInfo);
 VOID RenewWaitingRoom();
+
+
+VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)

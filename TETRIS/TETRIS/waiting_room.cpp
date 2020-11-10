@@ -266,12 +266,19 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 VOID JoinInTheRoom()
 {
-	ZeroMemory(buf, BUFSIZE);
+	LPPACKET_HEADER pHeader = NULL;
+	LPPACKET_BODY pPacket = NULL;
+	LPSTR pBody = NULL;
+
+	pHeader = new PACKET_HEADER;
+	ZeroMemory(pHeader, sizeof(PACKET_HEADER));
+
+	pHeader->iFlag = WSABUFFER_JOIN;
+	pHeader->iSize = 2;
+
+	sprintf(pBody, "%d", iSaveRoomNumber);
 	
-	buf[0]		= iSaveRoomNumber;
-	buf[1]		= NULL;
-	buf[2]		= '^';
-	send(sock_room, buf, BUFSIZE, NULL);
+	send(sock_room, pBody, pHeader->iSize, NULL);
 }
 
 
@@ -349,6 +356,15 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WSABUFFER_JOIN:
+		
+		break;
+
+	case WSABUFFER_FULL:
+		MessageBox(hDlg, _T("Can't Join this room"), NULL, MB_OK);
+		break;
+
+	case WSABUFFER_NOTFULL:
+		EndDialog(hDlg, 0);
 		break;
 
 	default:
@@ -367,8 +383,5 @@ VOID RenewList(int iSize, LPSTR pBody)
 
 	iNumRoom = iSize/(sizeof(ROOMINFO));
 
-	for (i = 1; i <= iNumRoom; i++)
-	{
-		
-	}
+
 }

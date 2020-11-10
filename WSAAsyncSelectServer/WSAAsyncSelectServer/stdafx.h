@@ -37,6 +37,7 @@ typedef struct _USERINFO
 	int iStatus;
 }USERINFO, *LPUSERINFO;
 
+
 struct ROOMINFO
 {
 	int iNum;

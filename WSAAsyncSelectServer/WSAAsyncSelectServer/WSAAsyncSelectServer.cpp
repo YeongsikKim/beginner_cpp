@@ -241,7 +241,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				RenewWaitingRoom();
 			}
 			//Join the room
-			else if (pClientSocketInfo->buf[2] == ENTRANCE)		
+			else if (pClientSocketInfo->buf[2] == ENTRANCE)
 			{
 				g_iTempRoomNumber = pClientSocketInfo->buf[0];
 
@@ -645,7 +645,7 @@ VOID RenewWaitingRoom()
 	{
 		sprintf(pBody, (LPSTR)iterRoom->second);
 	}
-	///////////////////////////////////////////////////////////////////////////////////방 정보를 모두 Sending 해야함
+	///////////////////////////////////////////////////////////////////////////////////방 정보를 모두 Sending 해야함 DO NOT SENDING POINTER.
 
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
@@ -784,6 +784,23 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		RenewWaitingRoom();
 		return;
 
+	case WSABUFFER_JOIN:
+		JoinInTheRoom(pClientSocketInfo, pBody);
+		break;
+
+	case WSABUFFER_QUITROOM:
+		iterRoom = mROOM.find(pUserInfo->iRoomNumber);
+		if (iterRoom != mROOM.end())
+		{
+			iterRoom->second->iPeopleIN--;
+			if (iterRoom->second->iPeopleIN <= 0)
+			{
+				delete iterRoom->second;
+				mROOM.erase(iterRoom);
+			}
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -796,4 +813,41 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 
 	delete [] pRespBuf;
 	pRespBuf = NULL;
+}
+
+
+VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)
+{
+	LPPACKET_HEADER pHeader = NULL;
+	LPUSERINFO pUserInfo = NULL;
+
+	pHeader = new PACKET_HEADER;
+	ZeroMemory(pHeader, sizeof(PACKET_HEADER));
+
+	GetUserInfo(pClientSocketInfo);
+	g_iTempRoomNumber = atoi(pBody);
+
+	iterRoom = mROOM.find(g_iTempRoomNumber);
+	if (iterRoom != mROOM.end())
+	{
+		if (iterRoom->second->iPeopleIN < MAX_PEOPLE)
+		{
+			iterRoom->second->iPeopleIN++;
+			pHeader->iFlag = WSABUFFER_NOTFULL;
+			send(pClientSocketInfo->sock, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
+			RenewWaitingRoom();
+		}
+		else
+		{					
+			printf("The number of people in Room was full\n");
+			pHeader->iFlag = WSABUFFER_FULL;
+			send(pClientSocketInfo->sock, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
+			RenewWaitingRoom();
+			break;
+		}
+	}
+	pUserInfo = GetUserInfo(pClientSocketInfo);
+	pUserInfo->iRoomNumber = g_iTempRoomNumber;
+	
+	delete pHeader;
 }
