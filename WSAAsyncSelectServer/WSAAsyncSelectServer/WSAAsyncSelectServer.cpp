@@ -109,58 +109,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 
-BITMAP bitmap;
-LPBITMAPINFO lpHeader;
 
 VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	char cTempbuf[10]	= {0,};
 	LPUSERINFO pUserInfo	= NULL;
-	SOCKETINFO *ptr			= NULL;
-	SOCKET sockClient		= 0;
-	SOCKET sockAnother		= 0;
+	SOCKETINFO *pClientSocketInfo			= NULL;
+	SOCKET hClientSock		= 0;
+	SOCKET hOtherSock		= 0;
 	SOCKADDR_IN addrClient	= {0,};
 	int iAddrlen			= 0;
 	int iRetval				= 0;
 	int iNameLen			= 0;
 
 
-
-
 	switch (WSAGETSELECTEVENT (lParam))
 	{
 	case FD_ACCEPT:
-		iAddrlen		= sizeof(addrClient);
-		sockClient		= accept(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
-		if (sockClient == INVALID_SOCKET)
-		{
-			if (WSAGetLastError() != WSAEWOULDBLOCK)
-			{
-				err_display("accept()");
-			}
-			return;
-		}
-		printf("[TCP Server] Client Accept: IP address = %s Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
-		AddSocketInfo(sockClient);
-		AddUserInfo(&addrClient, sockClient);
-
-		iRetval = WSAAsyncSelect(sockClient, hWnd, WM_SOCKET, FD_READ|FD_WRITE|FD_CLOSE);
-		if (iRetval == SOCKET_ERROR)
-		{
-			err_display("WSAAsyncSelect()");
-			RemoveSocketInfo(sockClient);
-		}
+		SocketAcceptFunction(hWnd, wParam, lParam);
 		break;
 
 	case FD_READ:
-		ptr		= GetSocketInfo(wParam);
+		pClientSocketInfo = GetSocketInfo(wParam);
 		//Receive Data
+
 
 
 		if (iStatusREAD == YESBMP)
 		{
-			iRetval = recv(ptr->sock, (LPSTR)lpBody, iSize, 0);
-			ptr->recvbytes = iRetval;
+			iRetval = recv(pClientSocketInfo->sock, (LPSTR)lpBody, iSize, 0);
+			pClientSocketInfo->recvbytes = iRetval;
 
 			if (iRetval == SOCKET_ERROR)
 			{
@@ -176,7 +154,7 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			pUserInfo = GetUserInfo(&addrClient);
 
-			send(ptr->sock, (LPSTR)lpBody, ptr->recvbytes, NULL);
+			send(pClientSocketInfo->sock, (LPSTR)lpBody, pClientSocketInfo->recvbytes, NULL);
 
 			if (mSOCKET.begin() == mSOCKET.end()) {;}
 			else
@@ -187,11 +165,11 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 					else if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0) //NOT Waiting room
 					{
-						sockAnother = GetSock(iterUser->second);
+						hOtherSock = GetSock(iterUser->second);
 
-						if ( sockAnother )
+						if ( hOtherSock )
 						{							
-							iRetval		= send(sockAnother, (LPSTR)lpBody, ptr->recvbytes, 0);
+							iRetval		= send(hOtherSock, (LPSTR)lpBody, pClientSocketInfo->recvbytes, 0);
 							if (iRetval == SOCKET_ERROR)
 							{
 								if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -211,19 +189,19 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 
 
-			ptr->sendbytes += iRetval;
-			if (ptr->recvbytes == ptr->sendbytes)
+			pClientSocketInfo->sendbytes += iRetval;
+			if (pClientSocketInfo->recvbytes == pClientSocketInfo->sendbytes)
 			{
-				ptr->recvbytes = ptr->sendbytes = 0;
+				pClientSocketInfo->recvbytes = pClientSocketInfo->sendbytes = 0;
 				free(lpBody);
 				iStatusREAD = NOTBMP;
 			}
 		}
 		else if (iStatusREAD == NOTBMP)
 		{
-			ZeroMemory(ptr->buf, BUFSIZE);
-			iRetval	= recv(ptr->sock, ptr->buf, BUFSIZE, 0);
-			iNameLen = strlen(ptr->buf);
+			ZeroMemory(pClientSocketInfo->buf, BUFSIZE);
+			iRetval	= recv(pClientSocketInfo->sock, pClientSocketInfo->buf, BUFSIZE, 0);
+			iNameLen = strlen(pClientSocketInfo->buf);
 
 			if (iRetval == SOCKET_ERROR)
 			{
@@ -235,27 +213,27 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				return;
 			}
 			//Confirm request about room info
-			if (ptr->buf[1]	== REQUESTROOM)
+			if (pClientSocketInfo->buf[1]	== REQUESTROOM)
 			{
 				for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
 				{
-					sprintf(ptr->buf, iterRoom->second->cRoomName);
-					iNameLen				= strlen(ptr->buf);
-					ptr->buf[iNameLen + 1]	= iterRoom->second->iNum;
-					ptr->buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
+					sprintf(pClientSocketInfo->buf, iterRoom->second->cRoomName);
+					iNameLen				= strlen(pClientSocketInfo->buf);
+					pClientSocketInfo->buf[iNameLen + 1]	= iterRoom->second->iNum;
+					pClientSocketInfo->buf[iNameLen + 2]	= iterRoom->second->iPeopleIN;
 
-					send(ptr->sock, ptr->buf, strlen(ptr->buf) + 4, NULL);
+					send(pClientSocketInfo->sock, pClientSocketInfo->buf, strlen(pClientSocketInfo->buf) + 4, NULL);
 				}
 			}
 			//Confirm whether it is title of room or not.
-			else if (ptr->buf[iNameLen + 1] == ROOMTITLE)
+			else if (pClientSocketInfo->buf[iNameLen + 1] == ROOMTITLE)
 			{
 				ZeroMemory(&addrClient, sizeof(SOCKADDR_IN));
 				iAddrlen = sizeof(addrClient);
 
-				ptr->buf[iNameLen + 1] = '\0';
-				getpeername(ptr->sock, (SOCKADDR*)&addrClient, &iAddrlen);
-				CreateRoomInfo(ptr->buf);
+				pClientSocketInfo->buf[iNameLen + 1] = '\0';
+				getpeername(pClientSocketInfo->sock, (SOCKADDR*)&addrClient, &iAddrlen);
+				CreateRoomInfo(pClientSocketInfo->buf);
 
 				pUserInfo = GetUserInfo(&addrClient);
 				pUserInfo->iRoomNumber = g_iTempRoomNumber;
@@ -263,9 +241,9 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				RenewWaitingRoom();
 			}
 			//Join the room
-			else if (ptr->buf[2] == ENTRANCE)		
+			else if (pClientSocketInfo->buf[2] == ENTRANCE)		
 			{
-				g_iTempRoomNumber = ptr->buf[0];
+				g_iTempRoomNumber = pClientSocketInfo->buf[0];
 
 				iterRoom = mROOM.find(g_iTempRoomNumber);
 				if (iterRoom != mROOM.end())
@@ -273,23 +251,23 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					if (iterRoom->second->iPeopleIN < MAX_PEOPLE)
 					{
 						iterRoom->second->iPeopleIN++;
-						send(ptr->sock, "/i", 3, NULL);
+						send(pClientSocketInfo->sock, "/i", 3, NULL);
 						RenewWaitingRoom();
 					}							
 					else
 					{					
 						printf("The number of people in Room was full\n");
-						send(ptr->sock, "/f", 3, NULL);
+						send(pClientSocketInfo->sock, "/f", 3, NULL);
 						break;
 					}
 				}
-				pUserInfo = GetUserInfo(ptr);
+				pUserInfo = GetUserInfo(pClientSocketInfo);
 				pUserInfo->iRoomNumber = g_iTempRoomNumber;
 			}
 			//Quit the room
-			else if (ptr->buf[0] == '/' && ptr->buf[1] == 'e')	
+			else if (pClientSocketInfo->buf[0] == '/' && pClientSocketInfo->buf[1] == 'e')
 			{
-				pUserInfo = GetUserInfo(ptr);
+				pUserInfo = GetUserInfo(pClientSocketInfo);
 
 				iterRoom = mROOM.find(pUserInfo->iRoomNumber);
 				if (iterRoom != mROOM.end())
@@ -303,15 +281,15 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			//about Chatting
-			else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 'c')
+			else if (pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 1] == '/' && pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 2] == 'c')
 			{
-				if (ptr->recvbytes > 0)
+				if (pClientSocketInfo->recvbytes > 0)
 				{
-					ptr->recvdelayed = TRUE;
+					pClientSocketInfo->recvdelayed = TRUE;
 					return;
 				}
 
-				ptr->recvbytes		= iRetval;
+				pClientSocketInfo->recvbytes		= iRetval;
 
 
 				iAddrlen			= sizeof(addrClient);
@@ -324,13 +302,13 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					err_quit("GetUserInfo()");
 				}
 
-				printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), ptr->buf);
+				printf("[TCP/%s:%d] %s\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port), pClientSocketInfo->buf);
 
 
-				if (ptr->recvbytes <= ptr->sendbytes) return;
+				if (pClientSocketInfo->recvbytes <= pClientSocketInfo->sendbytes) return;
 
 				//Sending Data
-				iRetval		= send(ptr->sock, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+				iRetval		= send(pClientSocketInfo->sock, pClientSocketInfo->buf + pClientSocketInfo->sendbytes, pClientSocketInfo->recvbytes - pClientSocketInfo->sendbytes, 0);
 				if (iRetval == SOCKET_ERROR)
 				{
 					if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -351,13 +329,13 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 						else if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber && iterUser->second->iRoomNumber != 0) //NOT Waiting room
 						{
-							sockAnother = GetSock(iterUser->second);
+							hOtherSock = GetSock(iterUser->second);
 
-							if ( sockAnother )
+							if ( hOtherSock )
 							{
-								ptr->buf[strlen(ptr->buf) + 1] = '/';
-								ptr->buf[strlen(ptr->buf) + 2] = 'c';
-								iRetval		= send(sockAnother, ptr->buf + ptr->sendbytes, ptr->recvbytes - ptr->sendbytes, 0);
+								pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 1] = '/';
+								pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 2] = 'c';
+								iRetval		= send(hOtherSock, pClientSocketInfo->buf + pClientSocketInfo->sendbytes, pClientSocketInfo->recvbytes - pClientSocketInfo->sendbytes, 0);
 								if (iRetval == SOCKET_ERROR)
 								{
 									if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -376,32 +354,32 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 				}
 				//Check Bytes
-				ptr->sendbytes += iRetval;
-				if (ptr->recvbytes == ptr->sendbytes)
+				pClientSocketInfo->sendbytes += iRetval;
+				if (pClientSocketInfo->recvbytes == pClientSocketInfo->sendbytes)
 				{
-					ptr->recvbytes = ptr->sendbytes = 0;
-					if (ptr->recvdelayed)
+					pClientSocketInfo->recvbytes = pClientSocketInfo->sendbytes = 0;
+					if (pClientSocketInfo->recvdelayed)
 					{
-						ptr->recvdelayed = FALSE;
+						pClientSocketInfo->recvdelayed = FALSE;
 						PostMessage(hWnd, WM_SOCKET, wParam, FD_READ);
 					}
 				}
 			}
-			else if (ptr->buf[strlen(ptr->buf) + 1] == '/' && ptr->buf[strlen(ptr->buf) + 2] == 's')
+			else if (pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 1] == '/' && pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 2] == 's')
 			{
 				iAddrlen			= sizeof(addrClient);
 				getpeername(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
 				pUserInfo = GetUserInfo(&addrClient);
 
-				ptr->buf[strlen(ptr->buf) + 1] = '\0';
-				ptr->buf[strlen(ptr->buf) + 2] = '\0';
+				pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 1] = '\0';
+				pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 2] = '\0';
 
-				iSize = atoi(ptr->buf);
+				iSize = atoi(pClientSocketInfo->buf);
 				lpBody = malloc(iSize);
 
-				ptr->buf[strlen(ptr->buf) + 1] = '/';
-				ptr->buf[strlen(ptr->buf) + 2] = 'p';
-				send(ptr->sock, ptr->buf, strlen(ptr->buf) + 3, NULL);
+				pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 1] = '/';
+				pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 2] = 'p';
+				send(pClientSocketInfo->sock, pClientSocketInfo->buf, strlen(pClientSocketInfo->buf) + 3, NULL);
 
 
 				for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
@@ -410,13 +388,13 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					{
 						if (pUserInfo->addr != iterUser->second->addr)
 						{					
-							sockAnother = GetSock(iterUser->second);
+							hOtherSock = GetSock(iterUser->second);
 
-							if (sockAnother)
+							if (hOtherSock)
 							{
-								ptr->buf[strlen(ptr->buf) + 1] = '/';
-								ptr->buf[strlen(ptr->buf) + 2] = 's';
-								iRetval = send(sockAnother, ptr->buf, strlen(ptr->buf) + 3, NULL);
+								pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 1] = '/';
+								pClientSocketInfo->buf[strlen(pClientSocketInfo->buf) + 2] = 's';
+								iRetval = send(hOtherSock, pClientSocketInfo->buf, strlen(pClientSocketInfo->buf) + 3, NULL);
 								if (iRetval == SOCKET_ERROR)
 								{
 									if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -694,4 +672,112 @@ VOID RenewWaitingRoom()
 	}
 	}
 	*/
+}
+
+
+
+VOID SocketAcceptFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	int iRetval					= 0;
+	int iAddrlen					= 0;
+	SOCKETINFO *pClientSokcetInfo	= NULL;
+	SOCKADDR_IN addrClient			= {0,};
+	SOCKET hClientSock				= 0;
+
+	iAddrlen		= sizeof(addrClient);
+	hClientSock		= accept(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+	if (hClientSock == INVALID_SOCKET)
+	{
+		if (WSAGetLastError() != WSAEWOULDBLOCK)
+		{
+			err_display("accept()");
+		}
+		return;
+	}
+	printf("[TCP Server] Client Accept: IP address = %s Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
+	AddSocketInfo(hClientSock);
+	AddUserInfo(&addrClient, hClientSock);
+
+	iRetval = WSAAsyncSelect(hClientSock, hWnd, WM_SOCKET, FD_READ|FD_WRITE|FD_CLOSE);
+	if (iRetval == SOCKET_ERROR)
+	{
+		err_display("WSAAsyncSelect()");
+		RemoveSocketInfo(hClientSock);
+	}
+}
+
+
+VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	LPUSERINFO pUserInfo = NULL;
+	SOCKET hClientSock = (SOCKET)wParam;
+	SOCKETINFO *pClientSocketInfo = NULL;
+	int iMaxLen = BUFSIZE;
+	int iRecvLen = 0;
+	int iBodySize = 0;
+	int iSendLen = 0;
+	int iSendTot = 0;
+	LPSTR pBody = NULL;
+
+	LPPACKET_BODY pPacket = NULL;
+	LPPACKET_HEADER pHeader = NULL;
+
+	pClientSocketInfo = GetSocketInfo(wParam);
+
+	while (pPacket->iCurRecv < iMaxLen)
+	{
+		iRecvLen = recv(hClientSock, (LPSTR)(pPacket->ucData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
+		if (iRecvLen == SOCKET_ERROR)
+		{
+			DWORD gle = WSAGetLastError();
+			if (gle == WSAEWOULDBLOCK)
+			{
+				printf("Can't Complete Immediately\n");
+				RemoveSocketInfo(hClientSock);
+				continue;
+			}
+		}
+		else if(iRecvLen == 0)
+		{
+			DWORD gle = WSAGetLastError();
+			printf("Recv()\n");
+			RemoveSocketInfo(hClientSock);
+		}
+
+		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
+
+		if (pPacket->iCurRecv >= sizeof(PACKET_HEADER))
+		{
+			if (!pHeader)
+			{
+				pHeader = (LPPACKET_HEADER) pPacket->ucData;
+				iMaxLen = pHeader->iSize;
+			}
+		}
+	}
+
+	pBody = (LPSTR)(pPacket->ucData + sizeof(PACKET_HEADER));
+	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
+
+	switch (pHeader->iFlag)
+	{
+	case WSABUFFER_ROOMNAME:
+		CreateRoomInfo(pBody);
+		pUserInfo = GetUserInfo(pClientSocketInfo);
+		pUserInfo->iRoomNumber = g_iTempRoomNumber;
+
+		RenewWaitingRoom();
+		break;
+	case WSABUFFER_CHATTING:
+		do 
+		{
+			iSendLen = send(hClientSock, (LPSTR))
+		} while ();
+		break;
+	case WSABUFFER_IMAGE:
+		break;
+	default:
+		break;
+	}
+
 }

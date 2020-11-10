@@ -45,6 +45,19 @@ struct ROOMINFO
 };
 
 
+typedef struct _Packet_Header
+{
+	int iFlag;
+	int iSize;
+}PACKET_HEADER, *LPPACKET_HEADER;
+
+typedef struct _Packet_Body
+{
+	UCHAR *ucData;
+	int iCurRecv;
+}PACKET_BODY, *LPPACKET_BODY;
+
+
 //Map
 extern map<int, SOCKETINFO*> mSOCKET;
 extern map<int, SOCKETINFO*>::iterator iterSocket;

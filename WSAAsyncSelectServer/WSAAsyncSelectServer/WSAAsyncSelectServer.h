@@ -10,6 +10,8 @@ VOID ProcessSocketMessage(HWND, UINT, WPARAM, LPARAM);
 BOOL AddSocketInfo(SOCKET sock);
 SOCKETINFO *GetSocketInfo(SOCKET sock);
 VOID RemoveSocketInfo(SOCKET sock);
+VOID SocketAcceptFunction(HWND hWnd, WPARAM wParam, LPARAM lParam);
+VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam);
 
 
 	//Print Error
