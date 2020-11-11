@@ -139,106 +139,116 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		break;
 
 	case FD_READ:
-		retval		= recv(sock_room, buf, BUFSIZE, 0);
-		//Exception
-		if(retval == SOCKET_ERROR)
-		{
-			err_display("recv()");
-			break;
-		}
-		else if (retval == 0) break;
-
-		//listview initialization
-		if (buf[0] == '~')
-		{ 
-			ListView_DeleteAllItems(hList);
-			LI.iItem = 0;
-		}
-		else if (buf[0] == '/' && buf[1] == 'f')
-		{
-			MessageBox(hDlg, _T("Can't Join this room"), NULL, MB_OK);
-		}
-		else if (buf[0] == '/' && buf[1] == 'i')
-		{
-			EndDialog(hDlg, 0);
-		}
-		else
-		{
-			ViewRoomList(buf);
-		}
-		
+		WaitingRoomReadFunction(hDlg, wParam, lParam);
 		break;
 
 	case FD_CONNECT:
-
 		//WSAAsyncSelect()
 		retval		= WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
 		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
-		
-		buf[1]		= '*';
-		send(sock_room, buf, sizeof(char)*2, NULL);
-		
 
+		SendingRenew();
 	}
 }
 
-VOID ViewRoomList(char *buf)
+VOID ViewRoomList(char *pBody)
 {
-	int iBufLen		= 0;
-	int iNum		= 0;
-	int iPeople		= 0;
-	char temp[10]	= {0,};
-
-	
+#if 1
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	int iSizeOfRoom = 0;
 
 	LI.mask			= LVIF_TEXT;
+	LI.iItem		= 0;
 
+	while (pBody == NULL)
+	{
+		LI.iSubItem = 0;
+		memcpy(LI.pszText, pBody + (sizeof(ROOMINFO) * iSizeOfRoom) + (sizeof(int)*2), BUFSIZE);
+		SendMessageA(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
 
+		LI.iSubItem = 1;
+		memcpy(LI.pszText, pBody + (sizeof(ROOMINFO) * iSizeOfRoom), sizeof(int));
+		SendMessageA(hList, LVM_INSERTITEMA, 1, (LPARAM)&LI);
 
-	iBufLen			= strlen(buf);
-	iNum			= buf[iBufLen + 1];
+		LI.iSubItem = 2;
+		memcpy(LI.pszText, pBody + (sizeof(ROOMINFO) * iSizeOfRoom) + sizeof(int), sizeof(int));
+		SendMessageA(hList, LVM_INSERTITEMA, 2, (LPARAM)&LI);
 
-	iPeople			= buf[iBufLen + 2];
-	buf[iBufLen + 1] = buf[iBufLen + 2] = '\0';
+		LI.iItem++;
+	}
+#endif
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+#if 0
+	LPSTR cNum = NULL;
+	LPSTR cCurrentPeople = NULL;
+	char cMaxPeople[BUFSIZE] = {0,};
+	
+	LI.mask			= LVIF_TEXT;
+
+	memcpy(cNum, pBody + 0, sizeof(int));
+	memcpy(cCurrentPeople, pBody + sizeof(int) , sizeof(int));
 
 
 	LI.iSubItem		= 0;
-	LI.pszText		= buf;
+	strcpy(LI.pszText, pBody + (sizeof(int) * 2));
 	SendMessageA(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
 
 	LI.iSubItem		= 1;
-	sprintf(LI.pszText, "%d", iNum);
+	strcpy(LI.pszText, cNum);
 	SendMessageA(hList, LVM_SETITEMA, 0, (LPARAM)&LI);
 
 	LI.iSubItem		= 2;
-	sprintf(temp, "%d/%d", iPeople, MAX_PEOPLE);
-	strcpy_s(LI.pszText, sizeof(temp), temp);
+	sprintf(cMaxPeople, "%s/%d", cCurrentPeople, MAX_PEOPLE);
+	strcpy_s(LI.pszText, sizeof(cMaxPeople), cMaxPeople);
 	SendMessageA(hList, LVM_SETITEMA, 0, (LPARAM)&LI);
 
 
 	LI.iItem++;
+#endif
 }
 
 VOID CreateRoom(HWND hDlg)
 {
-	int iCharlen		= 0;
-	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, buf, BUFSIZE+1);
-	if (buf[0] == '\0'){;}
-	else
+	int iSendTot = 0;
+	int iSendSize = 0;
+
+	LPPACKET_BODY pPacket = NULL;
+	pPacket = new PACKET_BODY;
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
+
+	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, (LPSTR)pPacket->cData, BUFSIZE+1);
+	DWORD dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
+	PBYTE pRespBuf = new BYTE[dwRespBufSize];
+
+	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
+	PBYTE pBody = pRespBuf + sizeof(PACKET_HEADER);
+
+	//header setting
+	pHeader->iFlag = WSABUFFER_ROOMNAME;
+	pHeader->iSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER);
+
+	//body setting
+	strcpy((LPSTR)pBody, pPacket->cData);
+
+	do 
 	{
-		//We have to coding input the some special character on buf. whether this is room name or not.
-		iCharlen			= strlen(buf);
-		buf[iCharlen + 1]	= '@';
+		iSendSize = send(sock_room, (char*)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if (iSendSize == SOCKET_ERROR)
+		{
+			printf("send()\n");
+			break;
+		}
+		iSendTot += iSendSize;
+	} while (pHeader->iSize != iSendTot);
 
-		send(sock_room, buf, iCharlen + 2, 0);
+	SetFocus(hEdit);
+	SendMessage(hEdit, EM_SETSEL, 0, -1);
+	SendMessage(hEdit, EM_REPLACESEL, NULL, (LPARAM)"");
 
-		SetFocus(hEdit);
-		SendMessage(hEdit, EM_SETSEL, 0, -1);
-		SendMessage(hEdit, EM_REPLACESEL, NULL, (LPARAM)"");
-		return;
-	}
-
+	delete pRespBuf;
+	delete pPacket;
+	return;	
 }
 
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -274,7 +284,7 @@ VOID JoinInTheRoom()
 	ZeroMemory(pHeader, sizeof(PACKET_HEADER));
 
 	pHeader->iFlag = WSABUFFER_JOIN;
-	pHeader->iSize = 2;
+	pHeader->iSize = sizeof(int);
 
 	sprintf(pBody, "%d", iSaveRoomNumber);
 	
@@ -316,6 +326,10 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	int iMaxLen = 0;
 
 	LPPACKET_BODY pPacket = NULL;
+	pPacket = new PACKET_BODY;
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
+
+
 	LPPACKET_HEADER pHeader = NULL;
 	LPSTR pBody = NULL;
 
@@ -324,7 +338,7 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 	while(pPacket->iCurRecv < iMaxLen)
 	{
-		iRecvLen = recv(hSock, (LPSTR)(pPacket->ucData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
+		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
 		if (iRecvLen == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() == WSAEWOULDBLOCK)
@@ -339,20 +353,20 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		{
 			if (!pHeader)
 			{
-				pHeader = (LPPACKET_HEADER) pPacket->ucData;
+				pHeader = (LPPACKET_HEADER) pPacket->cData;
 				iMaxLen = pHeader->iSize;
 			}
 		}
 	}
 
-	pBody = (LPSTR) (pPacket->ucData + sizeof(PACKET_HEADER));
+	pBody = (LPSTR) (pPacket->cData + sizeof(PACKET_HEADER));
 	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
 
 
 	switch (pHeader->iFlag)
 	{
 	case WSABUFFER_RENEW:
-		RenewList(pHeader->iSize, pBody);
+		ViewRoomList(pBody);
 		break;
 
 	case WSABUFFER_JOIN:
@@ -372,16 +386,15 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	}
 }
 
-
-VOID RenewList(int iSize, LPSTR pBody)
+VOID SendingRenew()
 {
-	int iNumRoom = 0;
-	int i = 0;
+	int iSendByte = 0;
+	LPPACKET_HEADER pHeader = {0,};
 
-	ListView_DeleteAllItems(hList);
-	LI.iItem = 0;
+	pHeader = new PACKET_HEADER;
+	ZeroMemory(pHeader, sizeof(PACKET_HEADER));
+	
+	pHeader->iFlag = WSABUFFER_RENEW;
 
-	iNumRoom = iSize/(sizeof(ROOMINFO));
-
-
+	iSendByte = send(sock_room, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
 }

@@ -292,7 +292,7 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 	while(pPacket->iCurRecv < iMaxLen)
 	{
-		iRecvLen = recv(hSock, (LPSTR)(pPacket->ucData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
+		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
 		if (iRecvLen == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() == WSAEWOULDBLOCK)
@@ -308,13 +308,13 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		{
 			if (!pHeader)
 			{
-				pHeader = (LPPACKET_HEADER) pPacket->ucData;
+				pHeader = (LPPACKET_HEADER) pPacket->cData;
 				iMaxLen = pHeader->iSize;
 			}
 		}
 	}
 
-	pBody = (LPSTR) (pPacket->ucData + sizeof(PACKET_HEADER));
+	pBody = (LPSTR) (pPacket->cData + sizeof(PACKET_HEADER));
 	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
 	
 

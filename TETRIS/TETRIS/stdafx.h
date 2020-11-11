@@ -74,17 +74,17 @@ typedef struct _Packet_Header
 
 typedef struct _Packet_Body
 {
-	UCHAR *ucData;
+	char cData[BUFSIZE];
 	int iCurRecv;
 }PACKET_BODY, *LPPACKET_BODY;
 
 //Room info
-struct ROOMINFO
+typedef struct _ROOMINFO
 {
 	int iNum;
 	int iPeopleIN;
 	char cRoomName[BUFSIZE];
-};
+}ROOMINFO, *LPROOMINFO;
 
 
 

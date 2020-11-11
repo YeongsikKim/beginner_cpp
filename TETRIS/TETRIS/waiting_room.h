@@ -10,4 +10,4 @@ VOID JoinInTheRoom();
 int GetRoomNumber();
 
 VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam);
-VOID RenewList(int iSize, LPSTR pBody);
+VOID SendingRenew();
