@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 LPNMITEMACTIVATE g_lpNIA;
-int iSaveRoomNumber;
+int g_iSaveRoomNumber;
 
 BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -30,6 +30,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			break;
 		case IDOK:
 			JoinInTheRoom();
+			EndDialog(hDlg, 0);
 			break;
 		case IDCANCEL:
 			exit(-1); 
@@ -47,7 +48,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		case LVN_ITEMCHANGED:
 			EnableWindow(hOKbutton2, TRUE);
 			g_lpNIA	= (LPNMITEMACTIVATE)lParam;
-			iSaveRoomNumber = GetRoomNumber();
+			g_iSaveRoomNumber = GetRoomNumber();
 
 			printf("Item : %d, %d, TEXT : %s\n", g_lpNIA->iItem, g_lpNIA->iSubItem, Caption);
 			break;
@@ -152,33 +153,36 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 	}
 }
 
-VOID ViewRoomList(char *pBody)
+VOID ViewRoomList(char *pBody, int iBodySize)
 {
 #if 1
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	int iSizeOfRoom = 0;
+	char cNumOfRoom[10] = {0,};
 
 	LI.mask			= LVIF_TEXT;
 	LI.iItem		= 0;
 
-	while (pBody == NULL)
+	while (iSizeOfRoom < iBodySize)
 	{
 		LI.iSubItem = 0;
-		memcpy(LI.pszText, pBody + (sizeof(ROOMINFO) * iSizeOfRoom) + (sizeof(int)*2), BUFSIZE);
+		LI.pszText = pBody + (sizeof(int) * 2) + iSizeOfRoom;
 		SendMessageA(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
 
 		LI.iSubItem = 1;
-		memcpy(LI.pszText, pBody + (sizeof(ROOMINFO) * iSizeOfRoom), sizeof(int));
-		SendMessageA(hList, LVM_INSERTITEMA, 1, (LPARAM)&LI);
+		LI.pszText = pBody + sizeof(int)  + iSizeOfRoom;
+		sprintf(LI.pszText, "%d", LI.pszText[0]);
+		SendMessageA(hList, LVM_SETITEMA, 1, (LPARAM)&LI);
 
 		LI.iSubItem = 2;
-		memcpy(LI.pszText, pBody + (sizeof(ROOMINFO) * iSizeOfRoom) + sizeof(int), sizeof(int));
-		SendMessageA(hList, LVM_INSERTITEMA, 2, (LPARAM)&LI);
+		LI.pszText = pBody  + iSizeOfRoom;
+		sprintf(LI.pszText, "%d", LI.pszText[0]);
+		SendMessageA(hList, LVM_SETITEMA, 2, (LPARAM)&LI);
 
+		iSizeOfRoom += sizeof(ROOMINFO);
 		LI.iItem++;
 	}
 #endif
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #if 0
 	LPSTR cNum = NULL;
 	LPSTR cCurrentPeople = NULL;
@@ -276,19 +280,38 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 VOID JoinInTheRoom()
 {
+	int iSendTot = 0;
+	int iSendLen = 0;
+	int iSaveRoomNum = 0;
+	int *pSaveRoomNum = &iSaveRoomNum;
 	LPPACKET_HEADER pHeader = NULL;
-	LPPACKET_BODY pPacket = NULL;
-	LPSTR pBody = NULL;
-
-	pHeader = new PACKET_HEADER;
-	ZeroMemory(pHeader, sizeof(PACKET_HEADER));
+	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + sizeof(int) + 1;
+	PBYTE pRespBuf = NULL;
+	PBYTE pBody = NULL;
+	
+	pRespBuf = new BYTE[dwRespBufSize];
+	
+	pHeader = (LPPACKET_HEADER)pRespBuf;
+	pBody = pRespBuf + sizeof(PACKET_HEADER);
 
 	pHeader->iFlag = WSABUFFER_JOIN;
-	pHeader->iSize = sizeof(int);
+	pHeader->iSize = sizeof(PACKET_HEADER) + sizeof(int);
 
-	sprintf(pBody, "%d", iSaveRoomNumber);
+	iSaveRoomNum = g_iSaveRoomNumber;
+
+	pSaveRoomNum = (int*)pBody;
 	
-	send(sock_room, pBody, pHeader->iSize, NULL);
+	do 
+	{
+		iSendLen = send(sock_room, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if (iSendLen == SOCKET_ERROR)
+		{
+			printf("send()\n");
+			continue;
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
+	
 }
 
 
@@ -304,17 +327,17 @@ int GetRoomNumber()
 
 	if (iBuflength <= 1)
 	{
-		iSaveRoomNumber = (int) (cBuf[0] - '0');
+		g_iSaveRoomNumber = (int) (cBuf[0] - '0');
 	}
 	else
 	{
-		iSaveRoomNumber--;
-		iSaveRoomNumber += (int)(cBuf[iBuflength - 0] - '0');
-		iSaveRoomNumber += (int)((cBuf[iBuflength - 1] - '0') * 10);
-		iSaveRoomNumber += (int)((cBuf[iBuflength - 2] - '0') * 100);
+		g_iSaveRoomNumber--;
+		g_iSaveRoomNumber += (int)(cBuf[iBuflength - 0] - '0');
+		g_iSaveRoomNumber += (int)((cBuf[iBuflength - 1] - '0') * 10);
+		g_iSaveRoomNumber += (int)((cBuf[iBuflength - 2] - '0') * 100);
 	}
 
-	return iSaveRoomNumber;
+	return g_iSaveRoomNumber;
 }
 
 
@@ -359,14 +382,14 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 
-	pBody = (LPSTR) (pPacket->cData + sizeof(PACKET_HEADER));
+	pBody = (LPSTR)(pPacket->cData + sizeof(PACKET_HEADER));
 	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
 
 
 	switch (pHeader->iFlag)
 	{
 	case WSABUFFER_RENEW:
-		ViewRoomList(pBody);
+		ViewRoomList(pBody, iBodySize);
 		break;
 
 	case WSABUFFER_JOIN:

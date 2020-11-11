@@ -83,7 +83,7 @@ typedef struct _ROOMINFO
 {
 	int iNum;
 	int iPeopleIN;
-	char cRoomName[BUFSIZE];
+	char cRoomName[ROOMNAME];
 }ROOMINFO, *LPROOMINFO;
 
 
