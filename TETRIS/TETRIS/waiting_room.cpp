@@ -169,13 +169,13 @@ VOID ViewRoomList(char *pBody, int iBodySize)
 		SendMessageA(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
 
 		LI.iSubItem = 1;
-		LI.pszText = pBody + sizeof(int)  + iSizeOfRoom;
+		LI.pszText = pBody + iSizeOfRoom;
 		sprintf(LI.pszText, "%d", LI.pszText[0]);
 		SendMessageA(hList, LVM_SETITEMA, 1, (LPARAM)&LI);
 
 		LI.iSubItem = 2;
-		LI.pszText = pBody  + iSizeOfRoom;
-		sprintf(LI.pszText, "%d", LI.pszText[0]);
+		LI.pszText = pBody + sizeof(int) + iSizeOfRoom;
+		sprintf(LI.pszText, "%d/%d", LI.pszText[0], MAX_PEOPLE);
 		SendMessageA(hList, LVM_SETITEMA, 2, (LPARAM)&LI);
 
 		iSizeOfRoom += sizeof(ROOMINFO);
@@ -297,9 +297,10 @@ VOID JoinInTheRoom()
 	pHeader->iFlag = WSABUFFER_JOIN;
 	pHeader->iSize = sizeof(PACKET_HEADER) + sizeof(int);
 
-	iSaveRoomNum = g_iSaveRoomNumber;
+//	iSaveRoomNum = g_iSaveRoomNumber;
 
 	pSaveRoomNum = (int*)pBody;
+	*pSaveRoomNum = g_iSaveRoomNumber;
 	
 	do 
 	{

@@ -26,11 +26,12 @@ HBITMAP hBit[11];
 
 //Chatting Global Variable
 SOCKET		sock;
-char		buf[BUFSIZE+1];
+char		cBuf[CHATSIZE];
 HWND		hEdit1, hEdit2, hOKbutton;
 LVITEMA		LI;
 
 
+LPPACKET_BODY pPacket;
 
 
 BITMAPINFOHEADER bi;

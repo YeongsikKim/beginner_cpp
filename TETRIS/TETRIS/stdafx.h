@@ -108,10 +108,10 @@ extern SOCKET		sock_room;
 
 //SOCKET Global variable
 extern SOCKET sock;
-extern char buf[BUFSIZE+1];
+extern char cBuf[CHATSIZE];
 extern HWND hEdit1, hEdit2, hOKbutton;
 extern LVITEMA LI;
-
+extern LPPACKET_BODY pPacket;
 
 
 //About Bitmap

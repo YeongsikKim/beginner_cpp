@@ -25,11 +25,10 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 		case IDOK:
 			EnableWindow(hOKbutton, FALSE);
-			GetDlgItemTextA(hDlg, IDC_EDIT2, buf, BUFSIZE+1);
-			buf[strlen(buf) + 1] = '/';
-			buf[strlen(buf) + 2] = 'c';
-			send(sock, buf, strlen(buf) + 3, 0);
-
+			GetDlgItemTextA(hDlg, IDC_EDIT2, cBuf, BUFSIZE+1);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			SendChatting();
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			SetFocus(hEdit2);
 			SendMessage(hEdit2, EM_SETSEL, 0, -1);
 			SendMessage(hEdit2, EM_REPLACESEL, NULL, (LPARAM)"");
@@ -139,11 +138,11 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case FD_READ:
-		ZeroMemory(buf, sizeof(buf));
-		
+		ChattingReadFunction(hDlg, wParam, lParam);
+/*
 		if (bStatusREAD == NOTBMP)
 		{
-			iRetval = recv(sock, buf, BUFSIZE, 0);
+			iRetval = recv(sock, cBuf, BUFSIZE, 0);
 			if(iRetval == SOCKET_ERROR)
 			{
 				err_display("recv()");
@@ -151,26 +150,26 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 
-			if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'c')
+			if (cBuf[strlen(cBuf) + 1] == '/' && cBuf[strlen(cBuf) + 2] == 'c')
 			{
-				buf[iRetval]	= '\0';
-				DisplayText("[TCP Client DATA] %s\r\n", buf);
+				cBuf[iRetval]	= '\0';
+				DisplayText("[TCP Client DATA] %s\r\n", cBuf);
 
 
 				EnableWindow(hOKbutton, true);
 			}
-			else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 's')
+			else if (cBuf[strlen(cBuf) + 1] == '/' && cBuf[strlen(cBuf) + 2] == 's')
 			{
-				buf[strlen(buf) + 1] = '\0';
-				buf[strlen(buf) + 2] = '\0';
-				iRecvSize = atoi(buf);
+				cBuf[strlen(cBuf) + 1] = '\0';
+				cBuf[strlen(cBuf) + 2] = '\0';
+				iRecvSize = atoi(cBuf);
 
 				lpRecvBody = malloc(iRecvSize + 1);
 				bStatusREAD = YESBMP;
 			}
-			else if (buf[strlen(buf) + 1] == '/' && buf[strlen(buf) + 2] == 'p')
+			else if (cBuf[strlen(cBuf) + 1] == '/' && cBuf[strlen(cBuf) + 2] == 'p')
 			{
-				//send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
+				send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
 				iRetval = send(sock, (LPSTR)lpBMPFile, iFileSize, NULL);
 				free(lpBody);
 				free(lpBMPFile);
@@ -197,10 +196,10 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				cout << "File open error!!" << endl;
 				exit(-1);
 			}
-/*
+
 			streamRecv.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
 			streamRecv.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
-*/
+
 			streamRecv.write((LPSTR)lpRecvBody, iRecvSize);
 			streamRecv.close();
 
@@ -222,6 +221,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			DeleteObject(hBitmap);
 			bStatusREAD = NOTBMP;
 		}
+*/
 		break;
 
 	case FD_CONNECT:
@@ -266,11 +266,12 @@ VOID InitProc(HWND hDlg)
 		{
 			err_display("connect()");
 		}
-		return;
 	}
 
-
-
+	//Create Packet
+	pPacket = new PACKET_BODY;
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
+	return;
 }
 
 
@@ -281,11 +282,13 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	int iRecvLen = 0;
 	int iBodySize = 0;
 	int iMaxLen = 0;
+	int iCurRecv = 0;
+	char cData[BUFSIZE] = {0,};
 
-	LPPACKET_BODY pPacket = NULL;
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
 	LPPACKET_HEADER pHeader = NULL;
 	LPSTR pBody = NULL;
-
+ 
 	ofstream streamRecv;
 	
 	iMaxLen = BUFSIZE;
@@ -349,7 +352,6 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+12)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
 			
-			free(lpRecvBody);
 			DeleteDC(hMemDC);
 			DeleteObject(hBitmap);
 			bStatusREAD = NOTBMP;
@@ -358,4 +360,36 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	default:
 		break;
 	}
+}
+
+VOID SendChatting()
+{
+	int iSendLen = 0;
+	int iSendTot = 0;
+	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + strlen(cBuf) + 1;
+	PBYTE pRespBuf = new BYTE[dwRespBufSize];
+	LPSTR pBody = NULL;
+
+	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
+	pBody = (LPSTR)pRespBuf + sizeof(PACKET_HEADER);
+	
+	//Setting Header
+	pHeader->iFlag = WSABUFFER_CHATTING;
+	pHeader->iSize = sizeof(PACKET_HEADER) + strlen(cBuf);
+
+	//Setting Body
+	strcpy(pBody, cBuf);
+
+	do 
+	{
+		iSendLen = send(sock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
+		if (iSendLen == SOCKET_ERROR)
+		{
+			printf("send()\n");
+			Sleep(1000);
+			exit(-1);
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
+	
 }
