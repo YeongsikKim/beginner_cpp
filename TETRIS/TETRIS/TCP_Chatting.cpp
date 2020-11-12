@@ -212,11 +212,16 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
 		if (iRecvLen == SOCKET_ERROR)
 		{
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			DWORD gle = WSAGetLastError();
+			if (gle == WSAEWOULDBLOCK)
 			{
-				err_display("recv()");
+				Sleep(100);
 				continue;
 			}
+		}
+		else if(iRecvLen == 0)
+		{
+			DWORD gle = WSAGetLastError();
 		}
 		
 		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
@@ -304,13 +309,13 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	hMemDC = CreateCompatibleDC(NULL);
 	hBitmap = CreateCompatibleBitmap(hdc, (BW+2)*TS, (BH+2)*TS);
 
-	SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, pBmpBody, lpHeader, DIB_RGB_COLORS);
+	SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, pBody + sizeof(BITMAPINFO), lpHeader, DIB_RGB_COLORS);
 	SelectObject(hMemDC, hBitmap);
 
 	InvalidateRect(hWndMain, NULL, FALSE);
 	UpdateWindow(hWndMain);
 
-	BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+12)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
 
 	DeleteDC(hMemDC);
 	DeleteObject(hBitmap);

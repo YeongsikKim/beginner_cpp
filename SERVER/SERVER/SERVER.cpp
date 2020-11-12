@@ -249,7 +249,7 @@ VOID err_display(int errcode)
 
 VOID AddUserInfo(SOCKADDR_IN * pAddrClient, SOCKET sockClient)
 {
-	LPUSERINFO pUserInfo		= NULL;
+	LPUSERINFO pUserInfo = NULL;
 
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
@@ -285,6 +285,7 @@ LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
 	}
 	return pReturn;
 }
+
 
 
 
@@ -372,8 +373,16 @@ VOID RenewWaitingRoom()
 			iSendByte = send(sock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 			if (iSendByte == SOCKET_ERROR)
 			{
-				printf("send()\n");
-				break;
+				DWORD gle = WSAGetLastError();
+				if (gle == WSAEWOULDBLOCK)
+				{
+					continue;
+				}
+				else if (gle == WSAENOTSOCK)
+				{
+					return;
+				}
+				printf("Renew send() error\n");
 			}
 			iSendTot += iSendByte;
 		} while (pHeader->iSize != iSendTot);		
@@ -459,7 +468,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	
 	pPacket = mPACKET[hClientSock];
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-	
+	 
 
 	LPPACKET_BODY pSendPacket = NULL;
 	LPPACKET_HEADER pSendHeader = NULL;
@@ -476,14 +485,14 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 			DWORD gle = WSAGetLastError();
 			if (gle == WSAEWOULDBLOCK)
 			{
-				break;
+				Sleep(50);
+				continue;
 			}
 		}
 		else if(iRecvLen == 0)
 		{
 			DWORD gle = WSAGetLastError();
-			printf("Recv()\n");
-			RemoveSocketInfo(hClientSock);
+			printf("WSAGetLastError : %ld\n", gle);
 		}
 
 		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
@@ -662,6 +671,11 @@ VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 			iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 			if (iSendLen == SOCKET_ERROR)
 			{
+				DWORD gle = WSAGetLastError();
+				if (gle == WSAEWOULDBLOCK)
+				{
+					continue;
+				}
 				printf("send()\n");
 				break;
 			}
@@ -711,6 +725,11 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 			iSendLen = send(hOtherSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 			if (iSendLen == SOCKET_ERROR)
 			{
+				DWORD gle = WSAGetLastError();
+				if (gle == WSAEWOULDBLOCK)
+				{
+					continue;
+				}
 				err_display("send()");
 			}
 			iSendTot += iSendLen;
@@ -725,7 +744,13 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
-			err_display("send()");
+			DWORD gle = WSAGetLastError();
+			printf("WSAGetLastError : %ld\n", gle);
+			if (gle == WSAEWOULDBLOCK)
+			{
+				break;
+			}
+			printf("Image send()\n");
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);

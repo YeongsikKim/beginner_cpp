@@ -64,7 +64,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 	}
 
-
+	delete(pPacket);
 
 	//Close Socket
 	if (sock == INVALID_SOCKET)
@@ -164,7 +164,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 		hWndMain	= hWnd;
-		SetRect(&crt, 0, 0, (BW+12)*TS * 2, (BH+2)*TS);
+		SetRect(&crt, 0, 0, (BW+12)*TS + (BW+2)*TS + 20, (BH+2)*TS);
 		AdjustWindowRect(&crt, WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, TRUE);
 		SetWindowPos(hWndMain, NULL, 0, 0, crt.right - crt.left, crt.bottom - crt.top, SWP_NOMOVE | SWP_NOZORDER);
 
