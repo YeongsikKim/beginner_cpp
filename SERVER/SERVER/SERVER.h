@@ -30,5 +30,5 @@ VOID RenewWaitingRoom();
 
 VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody);
 BOOL CreateRoomInfo(char * buf);
-VOID SendingChatting(LPSTR pBuf);
+VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf);
 VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize);

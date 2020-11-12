@@ -25,7 +25,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 		case IDOK:
 			EnableWindow(hOKbutton, FALSE);
-			GetDlgItemTextA(hDlg, IDC_EDIT2, cBuf, BUFSIZE+1);
+			GetDlgItemTextA(hDlg, IDC_EDIT2, cBuf, CHATSIZE+1);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			SendChatting();
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -134,7 +134,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_CLOSE:
-		//closesocket(sock);
+		closesocket(sock);
 		break;
 
 	case FD_READ:

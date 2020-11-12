@@ -67,6 +67,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 
 	//Close Socket
+	if (sock == INVALID_SOCKET)
+	{
+		printf("It is Invalid Socket\n");
+	}
 	closesocket(sock);
 	WSACleanup();
 	
@@ -528,6 +532,7 @@ VOID SendingBMP()
 	int iSendLen = 0;
 	int iSendTot = 0;
 
+
 	stream.open("c:\\beginnerC\\capture.bmp", ios::binary);
 	if (!stream.is_open())
 	{
@@ -615,23 +620,22 @@ VOID SendingBMP()
 	//Setting Body
 	streamSending.read((LPSTR)pBody, iFileSize);
 	streamSending.close();
-
+/*
 	do 
 	{
 		iSendLen = send(sock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
+			printf("WSAGetLastError : %ld\n", WSAGetLastError());
+			if (WSAGetLastError() == WSAENOTSOCK || WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+				break;
+			}
 			err_display("send()");
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
-	
-
-/*
-	sprintf(cBuf, "%d", iFileSize);
-	cBuf[strlen(cBuf) + 1] = '/';
-	cBuf[strlen(cBuf) + 2] = 's';
-	send(sock, cBuf, strlen(cBuf) + 3, NULL);
-*/
+*/	
 	free(lpBody);
+	lpBody = NULL;
 }

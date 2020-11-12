@@ -514,7 +514,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		return;
 
 	case WSABUFFER_CHATTING:
-		SendingChatting(pBody);
+		SendingChatting(pClientSocketInfo, pBody);
 		break;
 
 	case WSABUFFER_IMAGE:
@@ -611,7 +611,7 @@ BOOL CreateRoomInfo(char * buf)
 }
 
 
-VOID SendingChatting(LPSTR pBuf)
+VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 {
 	int iSendLen = 0;
 	int iSendTot = 0;
@@ -619,6 +619,9 @@ VOID SendingChatting(LPSTR pBuf)
 	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + strlen(pBuf) + 1;
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
 	LPSTR pBody = NULL;
+	LPUSERINFO pUserInfo = NULL;
+
+	pUserInfo = GetUserInfo(pSocketInfo);
 
 	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = (LPSTR)pRespBuf + sizeof(PACKET_HEADER);
@@ -633,6 +636,24 @@ VOID SendingChatting(LPSTR pBuf)
 	//Sending
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
+#if 1
+		if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber)
+		{
+			iSendTot = 0;
+			hSock = GetSock(iterUser->second);
+			do 
+			{
+				iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+				if (iSendLen == SOCKET_ERROR)
+				{
+					printf("send()\n");
+					break;
+				}
+				iSendTot += iSendLen;
+			} while (pHeader->iSize != iSendTot);
+		}
+#endif
+#if 0
 		iSendTot = 0;
 		hSock = GetSock(iterUser->second);
 		do 
@@ -645,6 +666,7 @@ VOID SendingChatting(LPSTR pBuf)
 			}
 			iSendTot += iSendLen;
 		} while (pHeader->iSize != iSendTot);
+#endif
 	}
 
 
