@@ -225,7 +225,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_TIMER:
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+		SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		if (MoveDown() == TRUE)
 		{
@@ -277,20 +277,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		DrawScreen(hdc);
-		SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_VSTETRIS:
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		SendingBMP();
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		/*
-		sprintf(buf, "%d", lpHeader->bmiHeader.biSizeImage);
-		buf[strlen(buf) + 1] = '/';
-		buf[strlen(buf) + 2] = 's';
-		send(sock, buf, strlen(buf) + 3, NULL);
-		break;
-		*/
+	
 		break;
 	case WM_DESTROY:
 		KillTimer(hWndMain, 1);
@@ -516,6 +512,10 @@ VOID QuitRoom()
 		iSendLen = send(sock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
+			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+				break;
+			}
 			err_display("send()");
 		}
 		iSendTot += iSendLen;
@@ -620,12 +620,13 @@ VOID SendingBMP()
 	//Setting Body
 	streamSending.read((LPSTR)pBody, iFileSize);
 	streamSending.close();
-/*
+
 	do 
 	{
 		iSendLen = send(sock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
+			DWORD gle = WSAGetLastError();
 			printf("WSAGetLastError : %ld\n", WSAGetLastError());
 			if (WSAGetLastError() == WSAENOTSOCK || WSAGetLastError() == WSAEWOULDBLOCK)
 			{
@@ -635,7 +636,7 @@ VOID SendingBMP()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
-*/	
+
 	free(lpBody);
 	lpBody = NULL;
 }

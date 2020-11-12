@@ -1,7 +1,7 @@
 #pragma once
 
 
-#define BUFSIZE		1024*32
+#define BUFSIZE		456295
 #define ROOMNAME	24
 #define BIT_COUNT	24
 

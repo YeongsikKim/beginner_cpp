@@ -476,9 +476,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 			DWORD gle = WSAGetLastError();
 			if (gle == WSAEWOULDBLOCK)
 			{
-				printf("Can't Complete Immediately\n");
-				//RemoveSocketInfo(hClientSock);
-				continue;
+				break;
 			}
 		}
 		else if(iRecvLen == 0)
@@ -530,6 +528,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		return;
 
 	case WSABUFFER_QUITROOM:
+		pUserInfo = GetUserInfo(pClientSocketInfo);
 		iterRoom = mROOM.find(pUserInfo->iRoomNumber);
 		if (iterRoom != mROOM.end())
 		{
@@ -636,7 +635,8 @@ VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 	//Sending
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
-#if 1
+//Sending the message only who has same number
+#if 0
 		if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber)
 		{
 			iSendTot = 0;
@@ -653,7 +653,8 @@ VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 			} while (pHeader->iSize != iSendTot);
 		}
 #endif
-#if 0
+//Sending the message everyone
+#if 1
 		iSendTot = 0;
 		hSock = GetSock(iterUser->second);
 		do 
@@ -692,8 +693,11 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 	pHeader->iSize = sizeof(PACKET_HEADER) + iBufSize;
 
 	//Setting body
-	strcpy(pBody, pBuf);
+	memcpy(pBody, pBuf, iBufSize);
 
+
+//Sending image only who has same Room Number
+#if 0
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
 		hOtherSock = GetSock(iterUser->second);
@@ -712,5 +716,18 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 			iSendTot += iSendLen;
 		} while (pHeader->iSize != iSendTot);
 	}
-	
+#endif
+//Sending Image to me Using DEBUG
+#if 1
+	iSendTot = 0;
+	do 
+	{
+		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if (iSendLen == SOCKET_ERROR)
+		{
+			err_display("send()");
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
+#endif
 }

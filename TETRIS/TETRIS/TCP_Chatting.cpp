@@ -139,89 +139,6 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case FD_READ:
 		ChattingReadFunction(hDlg, wParam, lParam);
-/*
-		if (bStatusREAD == NOTBMP)
-		{
-			iRetval = recv(sock, cBuf, BUFSIZE, 0);
-			if(iRetval == SOCKET_ERROR)
-			{
-				err_display("recv()");
-				break;
-			}
-
-
-			if (cBuf[strlen(cBuf) + 1] == '/' && cBuf[strlen(cBuf) + 2] == 'c')
-			{
-				cBuf[iRetval]	= '\0';
-				DisplayText("[TCP Client DATA] %s\r\n", cBuf);
-
-
-				EnableWindow(hOKbutton, true);
-			}
-			else if (cBuf[strlen(cBuf) + 1] == '/' && cBuf[strlen(cBuf) + 2] == 's')
-			{
-				cBuf[strlen(cBuf) + 1] = '\0';
-				cBuf[strlen(cBuf) + 2] = '\0';
-				iRecvSize = atoi(cBuf);
-
-				lpRecvBody = malloc(iRecvSize + 1);
-				bStatusREAD = YESBMP;
-			}
-			else if (cBuf[strlen(cBuf) + 1] == '/' && cBuf[strlen(cBuf) + 2] == 'p')
-			{
-				send(sock, (LPSTR)lpBody, lpHeader->bmiHeader.biSizeImage, NULL);
-				iRetval = send(sock, (LPSTR)lpBMPFile, iFileSize, NULL);
-				free(lpBody);
-				free(lpBMPFile);
-
-				SelectObject(hMemDC, old_obj);
-				DeleteDC(hMemDC);
-				ReleaseDC(NULL, hTempDC);
-				DeleteObject(hBitmap);
-			}
-		}
-		else if (bStatusREAD == YESBMP)
-		{
-			iRetval = recv(sock, (LPSTR)lpRecvBody, iRecvSize, 0);
-			if(iRetval == SOCKET_ERROR)
-			{
-				err_display("recv()");
-				break;
-			}
-
-
-			streamRecv.open("c:\\beginnerC\\RecievedBMP.bmp", ios::binary);
-			if (!streamRecv.is_open())
-			{
-				cout << "File open error!!" << endl;
-				exit(-1);
-			}
-
-			streamRecv.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
-			streamRecv.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
-
-			streamRecv.write((LPSTR)lpRecvBody, iRecvSize);
-			streamRecv.close();
-
-			hdc = GetDC(hWndMain); 
-
-			hMemDC = CreateCompatibleDC(NULL);
-			hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
-
-			SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, lpRecvBody, lpHeader, DIB_RGB_COLORS);
-			SelectObject(hMemDC, hBitmap);
-
-			InvalidateRect(hWndMain, NULL, FALSE);
-			UpdateWindow(hWndMain);
-
-			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+12)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
-			
-			free(lpRecvBody);
-			DeleteDC(hMemDC);
-			DeleteObject(hBitmap);
-			bStatusREAD = NOTBMP;
-		}
-*/
 		break;
 
 	case FD_CONNECT:
@@ -277,7 +194,6 @@ VOID InitProc(HWND hDlg)
 
 VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
-	HDC hdc = NULL;
 	SOCKET hSock = (SOCKET)wParam;
 	int iRecvLen = 0;
 	int iBodySize = 0;
@@ -288,8 +204,6 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
 	LPPACKET_HEADER pHeader = NULL;
 	LPSTR pBody = NULL;
- 
-	ofstream streamRecv;
 	
 	iMaxLen = BUFSIZE;
 
@@ -329,32 +243,7 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WSABUFFER_IMAGE:
-		streamRecv.open("c:\\beginnerC\\RecievedBMP.bmp", ios::binary);
-			if (!streamRecv.is_open())
-			{
-				cout << "File open error!!" << endl;
-				exit(-1);
-			}
-
-			streamRecv.write(pBody, iBodySize);
-			streamRecv.close();
-
-			hdc = GetDC(hWndMain); 
-
-			hMemDC = CreateCompatibleDC(NULL);
-			hBitmap = CreateCompatibleBitmap(hdc, (BW+12)*TS, (BH+2)*TS);
-
-			SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, lpRecvBody, lpHeader, DIB_RGB_COLORS);
-			SelectObject(hMemDC, hBitmap);
-
-			InvalidateRect(hWndMain, NULL, FALSE);
-			UpdateWindow(hWndMain);
-
-			BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+12)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
-			
-			DeleteDC(hMemDC);
-			DeleteObject(hBitmap);
-			bStatusREAD = NOTBMP;
+		ReadBinaryBMP(pBody, iBodySize);
 		break;
 
 	default:
@@ -390,6 +279,40 @@ VOID SendChatting()
 			exit(-1);
 		}
 		iSendTot += iSendLen;
-	} while (pHeader->iSize != iSendTot);
+	} while (pHeader->iSize != iSendTot);	
+}
+
+VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
+{
+	HDC hdc = NULL;
+	ofstream streamRecv;
+	LPBITMAPINFO pBmpHeader = NULL;
+	LPSTR pBmpBody = NULL;
 	
+
+	streamRecv.open("c:\\beginnerC\\RecievedBMP.bmp", ios::binary);
+	if (!streamRecv.is_open())
+	{
+		cout << "File open error!!" << endl;
+		exit(-1);
+	}
+	streamRecv.write((LPSTR)pBody, iFileSize);
+	streamRecv.close();
+
+	hdc = GetDC(hWndMain); 
+
+	hMemDC = CreateCompatibleDC(NULL);
+	hBitmap = CreateCompatibleBitmap(hdc, (BW+2)*TS, (BH+2)*TS);
+
+	SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, pBmpBody, lpHeader, DIB_RGB_COLORS);
+	SelectObject(hMemDC, hBitmap);
+
+	InvalidateRect(hWndMain, NULL, FALSE);
+	UpdateWindow(hWndMain);
+
+	BitBlt(hdc, (BW+12)*TS + 10, 0, (BW+12)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+
+	DeleteDC(hMemDC);
+	DeleteObject(hBitmap);
+	bStatusREAD = NOTBMP;
 }

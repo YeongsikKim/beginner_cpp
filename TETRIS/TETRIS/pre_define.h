@@ -6,7 +6,7 @@
 
 //ChattingWnd.cpp define
 #define MAX_LOADSTRING	100
-#define BUFSIZE			1024*32
+#define BUFSIZE			456295
 #define ROOMNAME		24
 #define CHATSIZE		512
 #define WM_SOCKET		(WM_USER+1)
