@@ -284,11 +284,11 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 		cout << "File open error!!" << endl;
 		exit(-1);
 	}
-	streamRecv.write((LPSTR)pBody, iFileSize);
+	streamRecv.write((LPSTR)pBody, iBodySize);
 	streamRecv.close();
 
+#if 0
 	hdc = GetDC(hWndMain); 
-
 	hMemDC = CreateCompatibleDC(NULL);
 	hBitmap = CreateCompatibleBitmap(hdc, (BW+2)*TS, (BH+2)*TS);
 
@@ -302,7 +302,28 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 
 	DeleteDC(hMemDC);
 	DeleteObject(hBitmap);
-	
+#endif
+
+#if 1
+	BITMAP bit = {0,};
+	int bx = 0;
+	int by = 0;
+	hdc = GetDC(hWndMain);
+	hMemDC = CreateCompatibleDC(NULL);
+	HBITMAP hImage = (HBITMAP)LoadImageA(g_hInst, "c:\\beginnerC\\ReceivedBMP.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION);
+	HBITMAP hOldBitmap = (HBITMAP) SelectObject(hMemDC, hImage);
+
+	GetObject(hImage, sizeof(BITMAP), &bit);
+	bx = bit.bmWidth;
+	by = bit.bmHeight;
+
+	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+
+	SelectObject(hMemDC, hOldBitmap);
+	DeleteObject(hImage);
+	DeleteDC(hMemDC);
+
+#endif 
 }
 
 

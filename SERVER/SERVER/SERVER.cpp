@@ -247,7 +247,7 @@ VOID err_display(int errcode)
 }
 
 
-VOID AddUserInfo(SOCKADDR_IN * pAddrClient, SOCKET sockClient)
+VOID AddUserInfo(SOCKADDR_IN * pAddrClient, SOCKET hClientSock)
 {
 	LPUSERINFO pUserInfo = NULL;
 
@@ -268,7 +268,7 @@ VOID AddUserInfo(SOCKADDR_IN * pAddrClient, SOCKET sockClient)
 	pUserInfo->iRoomNumber	= 0;
 	pUserInfo->iStatus		= 0;
 
-	mUSER.insert(pair<int, LPUSERINFO>(sockClient, pUserInfo));
+	mUSER.insert(pair<int, LPUSERINFO>(hClientSock, pUserInfo));
 }
 
 LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
@@ -309,6 +309,18 @@ LPUSERINFO GetUserInfo(SOCKETINFO *pSoketInfo)
 
 	
 	return lpUserinfo;
+}
+
+
+VOID RemoveUserInfo(SOCKET hSock)
+{
+	iterUser = mUSER.find(hSock);
+	
+	if (iterUser != mUSER.end())
+	{
+		delete iterUser->second;
+		mUSER.erase(iterUser);
+	}
 }
 
 
@@ -533,6 +545,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 				mROOM.erase(iterRoom);
 			}
 		}
+		RemoveUserInfo(hClientSock);
 		return;
 
 	default:
@@ -690,7 +703,7 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 
 
 //Sending image only who has same Room Number
-#if 0
+#if 1
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
 		hOtherSock = GetSock(iterUser->second);
@@ -702,21 +715,17 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 		do 
 		{
 			iSendLen = send(hOtherSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+			printf("Image Send(%lu), ToTal(%d), Cur(%d), SendLen(%d)(%d)\nSock(%X)\n", (iterUser->second->addr), pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen, hOtherSock);
 			if (iSendLen == SOCKET_ERROR)
 			{
-				DWORD gle = WSAGetLastError();
-				if (gle == WSAEWOULDBLOCK)
-				{
-					continue;
-				}
-				err_display("send()");
+				break;
 			}
 			iSendTot += iSendLen;
 		} while (pHeader->iSize != iSendTot);
 	}
 #endif
 //Sending Image to me Using DEBUG
-#if 1
+#if 0
 	iSendTot = 0;
 	do 
 	{

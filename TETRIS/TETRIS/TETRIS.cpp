@@ -293,9 +293,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		DrawScreen(hdc);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		EndPaint(hWnd, &ps);
 		break;
 
@@ -387,6 +384,7 @@ VOID DrawScreen(HDC hdc)
 	wsprintf(str, TEXT("Bricks: %d   "), bricknum);
 	TextOut(hdc, (BW+4)*TS, 80, str, lstrlen(str));
 
+	SettingBMPHeader();
 }
 
 VOID MakeNewBrick()
@@ -537,7 +535,7 @@ VOID QuitRoom()
 			DWORD gle = WSAGetLastError();
 			if (gle != WSAEWOULDBLOCK)
 			{
-				err_display("send()");
+				err_quit("send()");
 			}
 		}
 		iSendTot += iSendLen;
@@ -547,78 +545,8 @@ VOID QuitRoom()
 
 VOID SendingBMP()
 {
-	BOOL bRet = 0;
-	BITMAP bitmap = {0,};
-	HDC hbitDC = NULL;
-	int iPalSize = 0;
 	int iSendLen = 0;
 	int iSendTot = 0;
-
-
-	stream.open("c:\\beginnerC\\capture.bmp", ios::binary);
-	if (!stream.is_open())
-	{
-		cout << "File open error!!" << endl;
-		return;
-	}
-
-
-	ZeroMemory(cBuf, sizeof(cBuf));
-	hTempDC = GetDC(hWndMain);
-	hMemDC = CreateCompatibleDC(hTempDC);
-	hBitmap = CreateCompatibleBitmap(hTempDC, (BW+2)*TS, (BH+2)*TS);
-
-
-	old_obj = SelectObject(hMemDC, hBitmap);
-
-	bRet = BitBlt(hMemDC, 0, 0, (BW+2)*TS, (BH+2)*TS, hTempDC, 0, 0, SRCCOPY);			
-
-	GetObject(hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
-
-	// Bitmap Header 정보 설정
-	bi.biSize = sizeof(BITMAPINFOHEADER);
-	bi.biWidth = bitmap.bmWidth;
-	bi.biHeight = bitmap.bmHeight;
-	bi.biPlanes = 1;
-	bi.biBitCount = BIT_COUNT;
-	bi.biCompression = BI_RGB;
-	bi.biSizeImage = 0;
-	bi.biXPelsPerMeter = 0;
-	bi.biYPelsPerMeter = 0;
-	bi.biClrUsed = 0;
-	bi.biClrImportant = 0;
-	// 컬러 사이즈
-
-	iPalSize = (bi.biBitCount == 24 ? 0 : 1 << bi.biBitCount) * sizeof(RGBQUAD);
-
-
-	fh.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + iPalSize;
-	fh.bfReserved1 = 0;
-	fh.bfReserved2 = 0;
-	fh.bfSize = iSize + sizeof(BITMAPFILEHEADER);
-	fh.bfType = 0x4d42;
-
-	stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
-
-	hbitDC = GetDC(NULL);
-
-	lpHeader = new BITMAPINFO;
-	ZeroMemory(lpHeader, sizeof(BITMAPINFO));
-	lpHeader->bmiHeader = bi;
-	GetDIBits(hbitDC, hBitmap, 0, bitmap.bmHeight, NULL, lpHeader, DIB_RGB_COLORS);
-	bi = lpHeader->bmiHeader;
-	if (bi.biSizeImage == 0)
-	{
-		// 해더 사이즈 설정이 안되면 강제 계산 설정
-		bi.biSizeImage = ((bitmap.bmWidth * bi.biBitCount + 31) & ~31) / 8 * bitmap.bmHeight;
-	}
-	iSize = bi.biSize + iPalSize + bi.biSizeImage;
-	lpBody = malloc(lpHeader->bmiHeader.biSizeImage);
-	GetDIBits(hbitDC, hBitmap, 0, lpHeader->bmiHeader.biHeight, lpBody, lpHeader, DIB_RGB_COLORS);
-
-	stream.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
-	stream.write((LPSTR)lpBody, iSize);
-	stream.close();
 
 	streamSending.open("c:\\beginnerC\\capture.bmp", ios::binary);
 	streamSending.seekg(0, std::ios::end);
@@ -652,7 +580,82 @@ VOID SendingBMP()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
+}
+
+
+VOID SettingBMPHeader()
+{
+	BOOL bRet = 0;
+	BITMAP bitmap = {0,};
+	int iPalSize = 0;
+	HDC hbitDC = NULL;
+
+
+	stream.open("c:\\beginnerC\\capture.bmp", ios::binary);
+	if (!stream.is_open())
+	{
+		cout << "File open error!!" << endl;
+		return;
+	}
+
+	hTempDC = GetDC(hWndMain);
+	hMemDC = CreateCompatibleDC(hTempDC);
+	hBitmap = CreateCompatibleBitmap(hTempDC, (BW+2)*TS, (BH+2)*TS);
+
+
+	old_obj = SelectObject(hMemDC, hBitmap);
+
+	bRet = BitBlt(hMemDC, 0, 0, (BW+2)*TS, (BH+2)*TS, hTempDC, 0, 0, SRCCOPY);
+
+	GetObject(hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
+
+	// Bitmap Header Info Setting
+	bi.biSize = sizeof(BITMAPINFOHEADER);
+	bi.biWidth = bitmap.bmWidth;
+	bi.biHeight = bitmap.bmHeight;
+	bi.biPlanes = 1;
+	bi.biBitCount = BIT_COUNT;
+	bi.biCompression = BI_RGB;
+	bi.biSizeImage = 0;
+	bi.biXPelsPerMeter = 0;
+	bi.biYPelsPerMeter = 0;
+	bi.biClrUsed = 0;
+	bi.biClrImportant = 0;
+	// Color Size
+	iPalSize = (bi.biBitCount == 24 ? 0 : 1 << bi.biBitCount) * sizeof(RGBQUAD);
+
+
+	fh.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + iPalSize;
+	fh.bfReserved1 = 0;
+	fh.bfReserved2 = 0;
+	fh.bfSize = iSize + sizeof(BITMAPFILEHEADER);
+	fh.bfType = 0x4d42;
+
+	stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
+
+	hbitDC = GetDC(NULL);
+
+	lpHeader = new BITMAPINFO;
+	ZeroMemory(lpHeader, sizeof(BITMAPINFO));
+	lpHeader->bmiHeader = bi;
+	GetDIBits(hbitDC, hBitmap, 0, bitmap.bmHeight, NULL, lpHeader, DIB_RGB_COLORS);
+	bi = lpHeader->bmiHeader;
+	if (bi.biSizeImage == 0)
+	{
+		//Forced Setting File Image Size
+		bi.biSizeImage = ((bitmap.bmWidth * bi.biBitCount + 31) & ~31) / 8 * bitmap.bmHeight;
+	}
+	iSize = bi.biSize + iPalSize + bi.biSizeImage;
+	lpBody = malloc(lpHeader->bmiHeader.biSizeImage);
+	GetDIBits(hbitDC, hBitmap, 0, lpHeader->bmiHeader.biHeight, lpBody, lpHeader, DIB_RGB_COLORS);
+
+	stream.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
+	stream.write((LPSTR)lpBody, iSize);
+	stream.close();
 
 	free(lpBody);
 	lpBody = NULL;
+
+//	DeleteDC(hMemDC);
+//	DeleteObject(hBitmap);
 }
