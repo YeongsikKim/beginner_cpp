@@ -31,6 +31,7 @@
 #include <wingdi.h>
 #include <iostream>
 #include <fstream>
+#include <map>
 
 
 
@@ -78,6 +79,16 @@ typedef struct _Packet_Body
 	int iCurRecv;
 }PACKET_BODY, *LPPACKET_BODY;
 
+//Socket info
+typedef struct _SOCKETINFO
+{
+	SOCKET sock;
+	char buf[BUFSIZE+1];
+	int recvbytes;
+	int sendbytes;
+	BOOL recvdelayed;
+}SOCKETINFO, *LPSOCKETINFO;
+
 //Room info
 typedef struct _ROOMINFO
 {
@@ -87,6 +98,7 @@ typedef struct _ROOMINFO
 }ROOMINFO, *LPROOMINFO;
 
 
+extern BOOL bRecvDelay;
 
 //TETRIS Global Variable
 extern HINSTANCE	g_hInst;								
@@ -107,11 +119,10 @@ extern SOCKET		sock_room;
 
 
 //SOCKET Global variable
-extern SOCKET sock;
+extern SOCKET hSock;
 extern char cBuf[CHATSIZE];
 extern HWND hEdit1, hEdit2, hOKbutton;
 extern LVITEMA LI;
-extern LPPACKET_BODY pPacket;
 
 
 //About Bitmap
@@ -135,3 +146,7 @@ extern int iFileSize;
 extern ofstream stream;
 extern ifstream streamSending;
 extern ofstream streamTest;
+
+
+extern map<SOCKET, LPPACKET_BODY> mPACKET;
+extern map<SOCKET, LPPACKET_BODY>::iterator itPacket;

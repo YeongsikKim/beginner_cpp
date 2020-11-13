@@ -2,9 +2,6 @@
 //
 
 #include "stdafx.h"
-
-
-BOOL bStatusREAD = NOTBMP;
 //int vsprintf(char *cbuf, const char *fmt, va_list arg);
 
 
@@ -134,7 +131,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_CLOSE:
-		closesocket(sock);
+		closesocket(hSock);
 		break;
 
 	case FD_READ:
@@ -144,7 +141,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case FD_CONNECT:
 
 		//WSAAsyncSelect()
-		iRetval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);		
+		iRetval		= WSAAsyncSelect(hSock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);		
 		if (iRetval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 		break;
@@ -163,8 +160,8 @@ VOID InitProc(HWND hDlg)
 	SendMessage(hEdit2, EM_SETLIMITTEXT, BUFSIZE, 0);
 
 	//Socket()
-	sock		= socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET) err_quit("socket()");
+	hSock		= socket(AF_INET, SOCK_STREAM, 0);
+	if (hSock == INVALID_SOCKET) err_quit("socket()");
 
 	SOCKADDR_IN serveraddr = {0,};
 	serveraddr.sin_family		= AF_INET;
@@ -172,11 +169,11 @@ VOID InitProc(HWND hDlg)
 	serveraddr.sin_addr.s_addr	= inet_addr("192.168.100.162");
 
 	//WSAAsyncSelect()
-	retval		= WSAAsyncSelect(sock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
+	retval		= WSAAsyncSelect(hSock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
 	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 	//connect()
-	retval		= connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	retval		= connect(hSock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 	if (retval == INVALID_SOCKET)
 	{
 		if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -185,11 +182,11 @@ VOID InitProc(HWND hDlg)
 		}
 	}
 
-	//Create Packet
-	pPacket = new PACKET_BODY;
+	LPPACKET_BODY pPacket = new PACKET_BODY;
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-	return;
+	mPACKET.insert(pair<SOCKET, LPPACKET_BODY>(hSock, pPacket));
 }
+
 
 
 VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
@@ -197,50 +194,38 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	SOCKET hSock = (SOCKET)wParam;
 	int iRecvLen = 0;
 	int iBodySize = 0;
-	int iMaxLen = 0;
-	int iCurRecv = 0;
-	char cData[BUFSIZE] = {0,};
-
-	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-	LPPACKET_HEADER pHeader = NULL;
+	int iMaxLen = BUFSIZE;	
+//	LPPACKET_HEADER pHeader = NULL;
 	LPSTR pBody = NULL;
-	
-	iMaxLen = BUFSIZE;
+	PACKET_HEADER hHeader = {0,};
+
+	LPPACKET_BODY pPacket = mPACKET[hSock];
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
 
 	while(pPacket->iCurRecv < iMaxLen)
 	{
 		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
-		if (iRecvLen == SOCKET_ERROR)
-		{
-			DWORD gle = WSAGetLastError();
-			if (gle == WSAEWOULDBLOCK)
-			{
-				Sleep(100);
-				continue;
-			}
-		}
-		else if(iRecvLen == 0)
-		{
-			DWORD gle = WSAGetLastError();
-		}
 		
-		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
-
+		if (iRecvLen == SOCKET_ERROR )
+		{
+			DWORD gle = WSAGetLastError();
+		}
+		pPacket->iCurRecv += ( (iRecvLen > 0) ? iRecvLen : 0 );
 		if (pPacket->iCurRecv >= sizeof(PACKET_HEADER))
 		{
-			if (!pHeader)
-			{
-				pHeader = (LPPACKET_HEADER) pPacket->cData;
-				iMaxLen = pHeader->iSize;
-			}
+			memcpy(&hHeader, pPacket->cData, sizeof(PACKET_HEADER));
+			iMaxLen = hHeader.iSize;
+		}
+		
+		if ( pPacket->iCurRecv >= hHeader.iSize)
+		{
+			break;
 		}
 	}
 
 	pBody = (LPSTR) (pPacket->cData + sizeof(PACKET_HEADER));
-	iBodySize = pHeader->iSize - sizeof(PACKET_HEADER);
-	
-
-	switch (pHeader->iFlag)
+	iBodySize = hHeader.iSize - sizeof(PACKET_HEADER);
+	switch (hHeader.iFlag)
 	{
 	case WSABUFFER_CHATTING:
 		DisplayText("[TCP Client DATA] %s\r\n", pBody);
@@ -276,12 +261,10 @@ VOID SendChatting()
 
 	do 
 	{
-		iSendLen = send(sock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
-			printf("send()\n");
-			Sleep(1000);
-			exit(-1);
+			break;
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);	
@@ -309,7 +292,7 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	hMemDC = CreateCompatibleDC(NULL);
 	hBitmap = CreateCompatibleBitmap(hdc, (BW+2)*TS, (BH+2)*TS);
 
-	SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, pBody + sizeof(BITMAPINFO), lpHeader, DIB_RGB_COLORS);
+	SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, pBody + sizeof(BITMAPINFO) + 1, lpHeader, DIB_RGB_COLORS);
 	SelectObject(hMemDC, hBitmap);
 
 	InvalidateRect(hWndMain, NULL, FALSE);
@@ -319,5 +302,7 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 
 	DeleteDC(hMemDC);
 	DeleteObject(hBitmap);
-	bStatusREAD = NOTBMP;
+	
 }
+
+

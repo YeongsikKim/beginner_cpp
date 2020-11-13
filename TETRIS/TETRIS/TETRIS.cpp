@@ -64,17 +64,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 	}
 
-	delete(pPacket);
-
+	//Close Packet
+	itPacket = mPACKET.find(hSock);
+	delete itPacket->second;
+	mPACKET.erase(itPacket);
 	//Close Socket
-	if (sock == INVALID_SOCKET)
+	if (hSock == INVALID_SOCKET)
 	{
 		printf("It is Invalid Socket\n");
 	}
-	closesocket(sock);
+	closesocket(hSock);
 	WSACleanup();
 	
-
 	return (int) iMessage.wParam;
 }
 
@@ -200,19 +201,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			GameStatus	= RUNNING;
 			nbrick		= random(sizeof(Shape)/sizeof(Shape[0]));
 			MakeNewBrick();
-			iInterval	= 1000;
-			SetTimer(hWnd, 1, iInterval, NULL);
+			iInterval	= TIMER_TYPE_DOWN_DELAY;
+			SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
+			SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 			break;
 		case IDM_GAME_PAUSE:
 			if (GameStatus == RUNNING)
 			{
 				GameStatus	= PAUSE;
-				KillTimer(hWnd, 1);
+				KillTimer(hWnd, TIMER_TYPE_DOWN);
+				KillTimer(hWnd, TIMER_TYPE_CAPTURE);
 			}
 			else if (GameStatus == PAUSE)
 			{
 				GameStatus	= RUNNING;
-				SetTimer(hWnd, 1, iInterval, NULL);
+				SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
+				SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 			}
 			break;
 		case IDM_GAME_EXIT:
@@ -223,15 +227,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
+
 	case WM_TIMER:
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		if (MoveDown() == TRUE)
 		{
-			MakeNewBrick();
+			switch(wParam)
+			{
+			case TIMER_TYPE_DOWN : 
+				{
+					if (MoveDown() == TRUE)
+					{
+						MakeNewBrick();
+					}
+				}
+				break;
+			case TIMER_TYPE_CAPTURE : 
+				{
+					SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+				}
+				break;
+			}
 		}
 		break;
+
 	case WM_KEYDOWN:
 		if (GameStatus != RUNNING || brick == -1)
 		{
@@ -270,7 +287,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case VK_SPACE:
 			while(MoveDown() == FALSE){;}
 			MakeNewBrick();
-			SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
 			break;
 		}
 		break;
@@ -282,15 +298,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		EndPaint(hWnd, &ps);
 		break;
+
 	case WM_VSTETRIS:
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		SendingBMP();
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
 		break;
+
 	case WM_DESTROY:
-		KillTimer(hWndMain, 1);
-		for (i = 0; i<11; i++)
+		KillTimer(hWndMain, TIMER_TYPE_DOWN);
+		KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
+
+		for ( i = 0; i < 11; i++ )
 		{
 			DeleteObject(hBit[i]);
 		}
@@ -374,17 +391,22 @@ VOID DrawScreen(HDC hdc)
 
 VOID MakeNewBrick()
 {
-	bricknum++;
 	brick		= nbrick;
 	nbrick		= random(sizeof(Shape)/sizeof(Shape[0]));
 	nx			= BW/2;
 	ny			= 3;
 	rot			= 0;
+
+	bricknum++;
+
 	InvalidateRect(hWndMain, NULL, FALSE);
+
 	if (GetAround(nx, ny, brick, rot) != EMPTY)
 	{
-		KillTimer(hWndMain, 1);
-		GameStatus		= GAMEOVER;
+		KillTimer(hWndMain, TIMER_TYPE_DOWN);
+		KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
+		GameStatus = GAMEOVER;
+
 		MessageBox(hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
 	}
 }
@@ -460,7 +482,7 @@ VOID TestFull()
 	if (bricknum % 10 == 0 && iInterval > 200)
 	{
 		iInterval -= 50;
-		SetTimer (hWndMain, 1, iInterval, NULL);
+		SetTimer (hWndMain, TIMER_TYPE_DOWN, iInterval, NULL);
 	}
 }
 
@@ -507,16 +529,16 @@ VOID QuitRoom()
 	pHeader->iFlag = WSABUFFER_QUITROOM;
 	pHeader->iSize = sizeof(PACKET_HEADER);
 
-	do 
+	do
 	{
-		iSendLen = send(sock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			DWORD gle = WSAGetLastError();
+			if (gle != WSAEWOULDBLOCK)
 			{
-				break;
+				err_display("send()");
 			}
-			err_display("send()");
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
@@ -623,16 +645,10 @@ VOID SendingBMP()
 
 	do 
 	{
-		iSendLen = send(sock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
-			DWORD gle = WSAGetLastError();
-			printf("WSAGetLastError : %ld\n", WSAGetLastError());
-			if (WSAGetLastError() == WSAENOTSOCK || WSAGetLastError() == WSAEWOULDBLOCK)
-			{
-				break;
-			}
-			err_display("send()");
+			break;
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);

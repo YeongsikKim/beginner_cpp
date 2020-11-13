@@ -25,13 +25,11 @@ HBITMAP hBit[11];
 
 
 //Chatting Global Variable
-SOCKET		sock;
+SOCKET		hSock;
 char		cBuf[CHATSIZE];
 HWND		hEdit1, hEdit2, hOKbutton;
 LVITEMA		LI;
 
-
-LPPACKET_BODY pPacket;
 
 
 BITMAPINFOHEADER bi;
@@ -57,3 +55,7 @@ int iFileSize;
 ofstream stream;
 ifstream streamSending;
 ofstream streamTest;
+
+
+map<SOCKET, LPPACKET_BODY> mPACKET;
+map<SOCKET, LPPACKET_BODY>::iterator itPacket;
