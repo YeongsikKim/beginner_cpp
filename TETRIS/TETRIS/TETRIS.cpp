@@ -169,15 +169,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		AdjustWindowRect(&crt, WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, TRUE);
 		SetWindowPos(hWndMain, NULL, 0, 0, crt.right - crt.left, crt.bottom - crt.top, SWP_NOMOVE | SWP_NOZORDER);
 
+		//Create Ready Button
+		CreateReadyButton(hWnd);
+
 		GameStatus	= GAMEOVER;
 		srand(GetTickCount());
 		for (i = 0; i<11; i++)
 		{
 			hBit[i]	= LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BITMAP1+i));
 		}
-
-
 		return 0;
+
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
@@ -205,6 +207,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
 			SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 			break;
+
 		case IDM_GAME_PAUSE:
 			if (GameStatus == RUNNING)
 			{
@@ -219,10 +222,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 			}
 			break;
+
 		case IDM_GAME_EXIT:
 			QuitRoom();
 			DestroyWindow(hWnd);
 			break;
+
+		case MENU_READYBUTTON:
+			
+
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -658,4 +666,51 @@ VOID SettingBMPHeader()
 
 //	DeleteDC(hMemDC);
 //	DeleteObject(hBitmap);
+}
+
+VOID CreateReadyButton(HWND hWnd)
+{
+	g_hReadyButton = CreateWindow(TEXT("Button"), TEXT("Ready"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+		(BW+12)*TS + 100, (BH+2)*TS - 50, 100, 100, hWnd, (HMENU)MENU_READYBUTTON, g_hInst, NULL);
+
+}
+
+
+VOID ClickedReadyButton()
+{
+	WCHAR wBuf[NAMEBUF] = {0,};
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
+	LPPACKET_HEADER pHeader = NULL;
+	int iSendLen = 0;
+	int iSendTot = 0;
+
+	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+
+	pHeader = (LPPACKET_HEADER) pRespBuf;
+
+	GetWindowText(g_hReadyButton, wBuf, NAMEBUF);
+	if ( wcscmp(wBuf, TEXT("Ready")) == 0 )
+	{
+		SetWindowText(g_hReadyButton, TEXT("Cancle"));
+		pHeader->iFlag = WSABUFFER_READY;
+		pHeader->iSize = sizeof(PACKET_HEADER);
+	}
+	else if ( wcscmp(wBuf, TEXT("Cancle")) == 0 )
+	{
+		SetWindowText(g_hReadyButton, TEXT("Ready"));
+		pHeader->iFlag = WSABUFFER_NOTREADY;
+		pHeader->iSize = sizeof(PACKET_HEADER);
+	}
+
+	do 
+	{
+		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if ( iSendLen == SOCKET_ERROR )
+		{
+			err_quit("Ready Send()");
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
 }
