@@ -11,6 +11,7 @@ HWND			hList, hRoomCreate, hOKbutton2, hEdit;
 HWND			g_hReadyButton;
 SOCKET			sock_room;
 
+tag_Status		GameStatus;
 
 
 

@@ -118,6 +118,8 @@ extern HWND			hEdit;
 extern HWND			g_hReadyButton;
 extern SOCKET		sock_room;
 
+extern tag_Status	GameStatus;
+
 
 //SOCKET Global variable
 extern SOCKET hSock;
@@ -151,3 +153,4 @@ extern ofstream streamTest;
 
 extern map<SOCKET, LPPACKET_BODY> mPACKET;
 extern map<SOCKET, LPPACKET_BODY>::iterator itPacket;
+
