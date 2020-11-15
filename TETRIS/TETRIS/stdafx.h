@@ -94,7 +94,7 @@ typedef struct _ROOMINFO
 {
 	int iNum;
 	int iPeopleIN;
-	char cRoomName[ROOMNAME];
+	char cRoomName[NAMEBUF];
 }ROOMINFO, *LPROOMINFO;
 
 
@@ -115,6 +115,7 @@ extern HWND			hList;
 extern HWND			hRoomCreate; 
 extern HWND			hOKbutton2;
 extern HWND			hEdit;
+extern HWND			g_hReadyButton;
 extern SOCKET		sock_room;
 
 

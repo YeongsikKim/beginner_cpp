@@ -8,6 +8,7 @@
 HINSTANCE		g_hInst;								
 HWND			hWndMain;
 HWND			hList, hRoomCreate, hOKbutton2, hEdit;
+HWND			g_hReadyButton;
 SOCKET			sock_room;
 
 

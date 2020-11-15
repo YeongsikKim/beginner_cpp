@@ -10,7 +10,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 	LPNMHDR hdr			= NULL;
 	LPNMLISTVIEW nlv	= NULL;
 	
-	TCHAR Caption[ROOMNAME+1]	= {0,};
+	TCHAR Caption[NAMEBUF+1]	= {0,};
 
 	hdr		= (LPNMHDR)lParam;
 	nlv		= (LPNMLISTVIEW)lParam;
@@ -221,7 +221,7 @@ VOID CreateRoom(HWND hDlg)
 	pPacket = new PACKET_BODY;
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
 
-	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, (LPSTR)pPacket->cData, ROOMNAME+1);
+	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, (LPSTR)pPacket->cData, NAMEBUF+1);
 	DWORD dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
 
@@ -320,7 +320,7 @@ VOID JoinInTheRoom()
 int GetRoomNumber()
 {
 	int iBuflength		= 0;
-	TCHAR cBuf[ROOMNAME]	= {0,};
+	TCHAR cBuf[NAMEBUF]	= {0,};
 
 	iBuflength = wcslen(cBuf);
 
