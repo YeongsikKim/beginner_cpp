@@ -16,14 +16,14 @@
 
 using namespace std;
 
-struct SOCKETINFO
+typedef struct _SOCKETINFO
 {
 	SOCKET sock;
 	char buf[BUFSIZE+1];
 	int recvbytes;
 	int sendbytes;
 	BOOL recvdelayed;
-};
+}SOCKETINFO, *LPSOCKETINFO;
 
 typedef struct _USERINFO
 {
@@ -33,12 +33,12 @@ typedef struct _USERINFO
 }USERINFO, *LPUSERINFO;
 
 
-struct ROOMINFO
+typedef struct _ROOMINFO
 {
 	int iNum;
 	int iPeopleIN;
 	char cRoomName[ROOMNAME];
-};
+}ROOMINFO, *LPROOMINFO;
 
 
 typedef struct _Packet_Header
@@ -70,3 +70,6 @@ extern int g_iRoomIDX;
 
 
 #include "SERVER.h"
+#include "err_print.h"
+#include "socket.h"
+#include "user_info.h"
