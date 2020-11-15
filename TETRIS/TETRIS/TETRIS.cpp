@@ -6,8 +6,7 @@
 
 
 LPCTSTR			lpszClass = TEXT("Tetris3");
-tag_Status GameStatus;
-Point			Shape[][4][4]=
+Point			Shape[36][4][4]=
 {
 	{{0,0,1,0,2,0,-1,0},{0,0,0,1,0,-1,0,-2},{0,0,1,0,2,0,-1,0},{0,0,0,1,0,-1,0,-2}},
 	{{0,0,1,0,0,1,1,1,},{0,0,1,0,0,1,1,1},{0,0,1,0,0,1,1,1},{0,0,1,0,0,1,1,1}},
@@ -229,7 +228,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case MENU_READYBUTTON:
-			
+			ClickedReadyButton();
 
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);

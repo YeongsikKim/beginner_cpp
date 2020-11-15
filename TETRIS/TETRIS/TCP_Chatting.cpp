@@ -235,6 +235,10 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	case WSABUFFER_IMAGE:
 		ReadBinaryBMP(pBody, iBodySize);
 		break;
+		
+	case WSABUFFER_START:
+		AllReadyIsDone(hWndMain);
+		break;
 
 	default:
 		break;
@@ -327,3 +331,29 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 }
 
 
+VOID AllReadyIsDone(HWND hWnd)
+{
+	int x = 0;
+	int y = 0;
+	Point Shape[36][4][4];
+
+	if (GameStatus != GAMEOVER)
+	{
+		return;
+	}
+	for (x = 0; x<BW + 2; x++)
+	{
+		for (y = 0; y<BH + 2; y++)
+		{
+			board[x][y] = (y==0 || y==BH+1 || x==0 || x==BW+1)?WALL:EMPTY;
+		}
+	}
+	score		= 0;
+	bricknum	= 0;
+	GameStatus	= RUNNING;
+	nbrick		= random(sizeof(Shape)/sizeof(Shape[0]));
+	MakeNewBrick();
+	iInterval	= TIMER_TYPE_DOWN_DELAY;
+	SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
+	SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
+}
