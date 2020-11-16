@@ -26,7 +26,7 @@
 #define IDD_DIALOG_MAIN                 141
 #define IDD_DIALOG_MAKING               142
 #define IDC_LIST1                       1005
-#define IDC_BUTTON1                     1007
+#define IDC_BTN_MAKE_ROOM               1007
 #define IDC_EDIT_ROOMNAME               1009
 #define IDC_BUTTON2                     1010
 #define IDM_GAME_START                  32771

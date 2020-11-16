@@ -32,9 +32,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	MSG			iMessage;
 	HACCEL		hAccelTable;
 
-
 	g_hInst		= hInstance;
-
 
 	DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAIN), NULL, DlgProc_Waiting);
 
@@ -261,6 +259,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			return 0;
 		}
+
 		switch (wParam)
 		{
 		case VK_LEFT:
@@ -384,7 +383,7 @@ VOID DrawScreen(HDC hdc)
 		}
 	}
 
-	lstrcpy(str, TEXT("Tetris Ver 1.2"));
+	wcscpy(str, TEXT("Tetris Ver 1.2"));
 	TextOut(hdc, (BW+4)*TS, 30, str, lstrlen(str));
 	wsprintf(str, TEXT("Score : %d   "), score);
 	TextOut(hdc, (BW+4)*TS, 60, str, lstrlen(str));
@@ -402,11 +401,8 @@ VOID MakeNewBrick()
 	ny			= 3;
 	rot			= 0;
 	//Game over Send
-	DWORD dwRespBufSize = 0;
-	PBYTE pRespBuf = NULL;
-	LPPACKET_HEADER pHeader = NULL;
-	int iSendLen = 0;
-	int iSendTot = 0;
+	int iFlag = 0;
+	int iTotSize = 0;
 
 
 	bricknum++;
@@ -420,30 +416,14 @@ VOID MakeNewBrick()
 		GameStatus = GAMEOVER;
 
 		//Sending "I am game over"
-		dwRespBufSize = sizeof(PACKET_HEADER) + 1;
-		pRespBuf = new BYTE[dwRespBufSize];
-
-		pHeader = (LPPACKET_HEADER) pRespBuf;
-
-		pHeader->iFlag = WSABUFFER_END;
-		pHeader->iSize = sizeof(PACKET_HEADER);
-		do 
-		{
-			iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-			if (iSendLen == SOCKET_ERROR)
-			{
-				err_quit("End send()");
-			}
-			iSendTot += iSendLen;
-		} while (pHeader->iSize != iSendTot);
+		iFlag = WSABUFFER_END;
+		iTotSize = sizeof(PACKET_HEADER);
+		SendFunction(iFlag, iTotSize, NULL);
 
 		MessageBox(hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
 		SetWindowText(g_hReadyButton, TEXT("Ready"));
 		ShowWindow(g_hReadyButton, SW_SHOW);
 	}	
-	
-	delete [] pRespBuf;
-	pRespBuf = NULL;
 }
 
 
@@ -453,7 +433,7 @@ int GetAround(int x, int y, int b, int r)
 	
 	for (i = 0; i<4; i++)
 	{
-		k	= max(k, board[x+Shape[b][r][i].x][y+Shape[b][r][i].y]);
+		k = max(k, board[x+Shape[b][r][i].x][y+Shape[b][r][i].y]);
 	}
 	return k;
 }
@@ -465,6 +445,7 @@ BOOL MoveDown()
 		TestFull();
 		return TRUE;
 	}
+
 	ny++;
 
 	InvalidateRect(hWndMain, NULL, FALSE);
@@ -554,74 +535,40 @@ VOID PrintTile(HDC hdc, int x, int y, int c)
 
 VOID QuitRoom()
 {
-	int iSendLen = 0;
-	int iSendTot = 0;
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + 1;
-	PBYTE pRespBuf = new BYTE[dwRespBufSize];
-	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
-
-	//Setting Header
-	pHeader->iFlag = WSABUFFER_QUITROOM;
-	pHeader->iSize = sizeof(PACKET_HEADER);
-
-	do
-	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-		if (iSendLen == SOCKET_ERROR)
-		{
-			DWORD gle = WSAGetLastError();
-			if (gle != WSAEWOULDBLOCK)
-			{
-				err_quit("send()");
-			}
-		}
-		iSendTot += iSendLen;
-	} while (pHeader->iSize != iSendTot);
+	int iFlag = 0;
+	int iTotSize = 0;
 	
-	delete [] pRespBuf;
-	pRespBuf = NULL;
+	iFlag = WSABUFFER_QUITROOM;
+	iTotSize = sizeof(PACKET_HEADER);
+
+	SendFunction(iFlag, iTotSize, NULL);
 }
 
 VOID SendingBMP()
 {
-	int iSendLen = 0;
-	int iSendTot = 0;
+	int iFlag = 0;
+	int iTotSize = 0;
+	PBYTE pBody = NULL;
 
 	streamSending.open("c:\\beginnerC\\capture.bmp", ios::binary);
 	streamSending.seekg(0, std::ios::end);
-
 	iFileSize = streamSending.tellg();
-
 	streamSending.seekg(0, std::ios::beg);
 
-	
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + iFileSize + 1;
-	PBYTE pRespBuf = new BYTE[dwRespBufSize];
-	LPSTR pBody = NULL;
+	pBody = new BYTE[iFileSize];
 
-	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
-	pBody = (LPSTR)pRespBuf + sizeof(PACKET_HEADER);
-
-	//Setting Header
-	pHeader->iFlag = WSABUFFER_IMAGE;
-	pHeader->iSize = sizeof(PACKET_HEADER) + iFileSize;
-
-	//Setting Body
 	streamSending.read((LPSTR)pBody, iFileSize);
 	streamSending.close();
 
-	do 
-	{
-		iSendLen = send(hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
-		if (iSendLen == SOCKET_ERROR)
-		{
-			break;
-		}
-		iSendTot += iSendLen;
-	} while (pHeader->iSize != iSendTot);
+	
+	iFlag = WSABUFFER_IMAGE;
+	iTotSize = sizeof(PACKET_HEADER) + iFileSize;
 
-	delete [] pRespBuf;
-	pRespBuf = NULL;
+
+	SendFunction(iFlag, iTotSize, pBody);
+
+	delete [] pBody;
+	pBody = NULL;
 }
 
 
@@ -713,43 +660,24 @@ VOID CreateReadyButton(HWND hWnd)
 VOID ClickedReadyButton()
 {
 	WCHAR wBuf[NAMEBUF] = {0,};
-	DWORD dwRespBufSize = 0;
-	PBYTE pRespBuf = NULL;
-	LPPACKET_HEADER pHeader = NULL;
-	int iSendLen = 0;
-	int iSendTot = 0;
+	int iFlag = 0;
+	int iTotSize = 0;
 
-	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
-	pRespBuf = new BYTE[dwRespBufSize];
-
-	pHeader = (LPPACKET_HEADER) pRespBuf;
+	iTotSize = sizeof(PACKET_HEADER);
 
 	GetWindowText(g_hReadyButton, wBuf, NAMEBUF);
 	if ( wcscmp(wBuf, TEXT("Ready")) == 0 )
 	{
 		SetWindowText(g_hReadyButton, TEXT("Cancle"));
-		pHeader->iFlag = WSABUFFER_READY;
-		pHeader->iSize = sizeof(PACKET_HEADER);
+		iFlag = WSABUFFER_READY;
 	}
 	else if ( wcscmp(wBuf, TEXT("Cancle")) == 0 )
 	{
 		SetWindowText(g_hReadyButton, TEXT("Ready"));
-		pHeader->iFlag = WSABUFFER_NOTREADY;
-		pHeader->iSize = sizeof(PACKET_HEADER);
+		iFlag = WSABUFFER_NOTREADY;
 	}
 
-	do 
-	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-		if ( iSendLen == SOCKET_ERROR )
-		{
-			err_quit("Ready Send()");
-		}
-		iSendTot += iSendLen;
-	} while (pHeader->iSize != iSendTot);
-
-	delete [] pRespBuf;
-	pRespBuf = NULL;
+	SendFunction(iFlag, iTotSize, NULL);
 }
 
 VOID AllReadyIsDone(HWND hWnd)
@@ -778,4 +706,40 @@ VOID AllReadyIsDone(HWND hWnd)
 	SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 
 	ShowWindow(g_hReadyButton, SW_HIDE);
+}
+
+VOID SendFunction(int iFlag, int iTotSize, LPVOID pBodyBuf)
+{
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
+	PBYTE pBody = NULL;
+	LPPACKET_HEADER pHeader = NULL;
+	int iSendLen = 0;
+	int iSendTot = 0;
+
+	dwRespBufSize = iTotSize + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+
+	pHeader = (LPPACKET_HEADER)pRespBuf;
+	pBody = pRespBuf + sizeof(PACKET_HEADER);
+
+	//Setting Header
+	pHeader->iFlag = iFlag;
+	pHeader->iSize = iTotSize;
+
+	//Setting Body
+	memcpy(pBody, pBodyBuf, iTotSize - sizeof(PACKET_HEADER));
+
+	do 
+	{
+		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if ( iSendLen == SOCKET_ERROR )
+		{
+			err_quit("send()");
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }

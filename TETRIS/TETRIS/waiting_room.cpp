@@ -1,17 +1,21 @@
 #include "stdafx.h"
 
+
+// 전역 변수 관리 해주세요~
+
 LPNMITEMACTIVATE g_lpNIA;
 int g_iSaveRoomNumber;
 BOOL bCreateRoom;
 
 BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	int bRet		= TRUE;
 	int retval		= 0;
 
 	LPNMHDR hdr			= NULL;
 	LPNMLISTVIEW nlv	= NULL;
 	
-	TCHAR Caption[NAMEBUF+1]	= {0,};
+	WCHAR Caption[NAMEBUF+1]	= {0,};
 
 	hdr		= (LPNMHDR)lParam;
 	nlv		= (LPNMLISTVIEW)lParam;
@@ -23,31 +27,35 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		return TRUE;
 
 	case WM_COMMAND:
-		switch(LOWORD(wParam))
 		{
-		case IDC_BUTTON1:
-			bCreateRoom = FALSE;
-			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAKING), NULL, DlgProc_MakingRoom);
-			if (bCreateRoom == TRUE)
+			switch(LOWORD(wParam))
 			{
-				EndDialog(hDlg, 0);
+			case IDC_BTN_MAKE_ROOM:
+				bCreateRoom = FALSE;
+				DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAKING), NULL, DlgProc_MakingRoom);
+				if (bCreateRoom == TRUE)
+				{
+					EndDialog(hDlg, 0);
+				}
+				break;
+
+			case IDC_BUTTON2:
+				ListView_DeleteAllItems(hList);
+				SendingRenew();
+				break;
+
+			case IDOK:
+				JoinInTheRoom();
+				break;
+
+			case IDCANCEL:
+				exit(-1);		//do not make tetris window
+				break;
 			}
-			break;
 
-		case IDC_BUTTON2:
-			ListView_DeleteAllItems(hList);
-			SendingRenew();
-			break;
-
-		case IDOK:
-			JoinInTheRoom();
-			break;
-
-		case IDCANCEL:
-			exit(-1); 
-			break;
+			bRet = FALSE;
 		}
-		return FALSE;
+		break;
 
 	case WM_SOCKET:
 		ProcessSocketMessage_Room(hDlg, uMsg, wParam, lParam);
@@ -82,7 +90,7 @@ VOID InitProc_Waiting(HWND hDlg)
 	LVCOLUMN	COL;
 
 	hList		= GetDlgItem(hDlg, IDC_LIST1);
-	hRoomCreate	= GetDlgItem(hDlg, IDC_BUTTON1);
+	hRoomCreate	= GetDlgItem(hDlg, IDC_BTN_MAKE_ROOM);
 	hOKbutton2	= GetDlgItem(hDlg, IDOK);
 	hEdit		= GetDlgItem(hDlg, IDC_EDIT_ROOMNAME);
 	hResetKey	= GetDlgItem(hDlg, IDC_BUTTON2);
@@ -124,11 +132,14 @@ VOID InitProc_Waiting(HWND hDlg)
 
 
 	//WSAAsyncSelect()
-	retval		= WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
-	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
+	retval = WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
+
+	if (retval == SOCKET_ERROR) 
+		err_quit("WSAAsyncSelect()");
 
 	//connect()
-	retval		= connect(sock_room, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	retval = connect(sock_room, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+
 	if (retval == INVALID_SOCKET)
 	{
 		if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -234,13 +245,18 @@ BOOL CreateRoom(HWND hDlg)
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
 
 	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, (LPSTR)pPacket->cData, NAMEBUF+1);
-	if ( strcmp(pPacket->cData, "") == 0 )
+
+	if ( pPacket->cData[0] == '\0' )
 	{
 		MessageBox(hDlg, _T("Can't make the room which name is blank"), _T("Error"), NULL);
 		return FALSE;
 	}
-	DWORD dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
+	
+ 	DWORD dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
+
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize); // == memset(p, 0, size);
+
 
 	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
 	PBYTE pBody = pRespBuf + sizeof(PACKET_HEADER);
@@ -250,7 +266,8 @@ BOOL CreateRoom(HWND hDlg)
 	pHeader->iSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER);
 
 	//body setting
-	strcpy((LPSTR)pBody, pPacket->cData);
+	strcpy((LPSTR)pBody, pPacket->cData);		// memcpy <-- 꼭 사이즈 넣고 메모리카피 이용 왜? 버퍼이긴 때문에, 문자열이 아니기 때문에..
+
 
 	do 
 	{
@@ -261,6 +278,7 @@ BOOL CreateRoom(HWND hDlg)
 			break;
 		}
 		iSendTot += iSendSize;
+
 	} while (pHeader->iSize != iSendTot);
 
 	SetFocus(hEdit);
@@ -269,6 +287,7 @@ BOOL CreateRoom(HWND hDlg)
 
 	delete [] pRespBuf;
 	pRespBuf = NULL;
+
 	delete pPacket;
 	return TRUE;
 }
@@ -306,7 +325,8 @@ VOID JoinInTheRoom()
 	PBYTE pRespBuf = NULL;
 	PBYTE pBody = NULL;
 	
-	pRespBuf = new BYTE[dwRespBufSize];
+
+	pRespBuf = new BYTE[dwRespBufSize];	// 초기화 하세요~~~
 	
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = pRespBuf + sizeof(PACKET_HEADER);
@@ -329,7 +349,6 @@ VOID JoinInTheRoom()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
-	
 }
 
 
@@ -380,6 +399,7 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	while(pPacket->iCurRecv < iMaxLen)
 	{
 		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
+
 		if (iRecvLen == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() == WSAEWOULDBLOCK)
@@ -412,7 +432,6 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WSABUFFER_JOIN:
-		
 		break;
 
 	case WSABUFFER_FULL:
@@ -430,13 +449,22 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 VOID SendingRenew()
 {
-	int iSendByte = 0;
-	LPPACKET_HEADER pHeader = {0,};
+	int iSendLen = 0;
+	int iSendTot = 0;
+	PACKET_HEADER hHeader = {0,};
 
-	pHeader = new PACKET_HEADER;
-	ZeroMemory(pHeader, sizeof(PACKET_HEADER));
-	
-	pHeader->iFlag = WSABUFFER_RENEW;
+	hHeader.iFlag = WSABUFFER_RENEW;
+	hHeader.iSize = sizeof(PACKET_HEADER);
 
-	iSendByte = send(sock_room, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
+	do 
+	{
+		iSendLen = send(sock_room, (LPSTR)&hHeader + iSendTot, hHeader.iSize - iSendTot, NULL);
+
+		if ( iSendLen == SOCKET_ERROR )
+		{
+			err_quit("send()");
+		}
+
+		iSendTot += iSendLen;
+	} while (hHeader.iSize != iSendTot);
 }

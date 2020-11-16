@@ -33,3 +33,41 @@
 //WM_USER
 #define WM_SOCKET	(WM_USER+1)
 #define WM_RENEW	(WM_USER+2)
+
+// define struct
+typedef struct _SOCKETINFO
+{
+	SOCKET sock;
+	char buf[BUFSIZE+1];
+	int recvbytes;
+	int sendbytes;
+	BOOL recvdelayed;
+}SOCKETINFO, *LPSOCKETINFO;
+
+typedef struct _USERINFO
+{
+	ULONG addr;
+	int iRoomNumber;
+	int iStatus;
+}USERINFO, *LPUSERINFO;
+
+
+typedef struct _ROOMINFO
+{
+	int iNum;
+	int iPeopleIN;
+	char cRoomName[ROOMNAME];
+}ROOMINFO, *LPROOMINFO;
+
+
+typedef struct _Packet_Header
+{
+	int iFlag;
+	int iSize;
+}PACKET_HEADER, *LPPACKET_HEADER;
+
+typedef struct _Packet_Body
+{
+	char cData[BUFSIZE];
+	int iCurRecv;
+}PACKET_BODY, *LPPACKET_BODY;

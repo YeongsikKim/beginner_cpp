@@ -7,52 +7,18 @@
 #include <tchar.h>
 #include <WinSock2.h>
 #include <Windows.h>
+
+// c++
 #include <map>
-#include <iostream>
-#include <fstream>
+using namespace std;
 
 #include "pre_define.h"
 
+#include "tetris_server.h"
+#include "tetris_socket.h"
+#include "user_info.h"
 
-using namespace std;
-
-typedef struct _SOCKETINFO
-{
-	SOCKET sock;
-	char buf[BUFSIZE+1];
-	int recvbytes;
-	int sendbytes;
-	BOOL recvdelayed;
-}SOCKETINFO, *LPSOCKETINFO;
-
-typedef struct _USERINFO
-{
-	ULONG addr;
-	int iRoomNumber;
-	int iStatus;
-}USERINFO, *LPUSERINFO;
-
-
-typedef struct _ROOMINFO
-{
-	int iNum;
-	int iPeopleIN;
-	char cRoomName[ROOMNAME];
-}ROOMINFO, *LPROOMINFO;
-
-
-typedef struct _Packet_Header
-{
-	int iFlag;
-	int iSize;
-}PACKET_HEADER, *LPPACKET_HEADER;
-
-typedef struct _Packet_Body
-{
-	char cData[BUFSIZE];
-	int iCurRecv;
-}PACKET_BODY, *LPPACKET_BODY;
-
+#include "err_print.h"
 
 //Map
 extern map<int, SOCKETINFO*> mSOCKET;
@@ -69,7 +35,3 @@ extern int g_iTempRoomNumber;
 extern int g_iRoomIDX;
 
 
-#include "SERVER.h"
-#include "err_print.h"
-#include "socket.h"
-#include "user_info.h"

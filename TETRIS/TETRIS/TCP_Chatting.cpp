@@ -30,8 +30,8 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SendMessage(hEdit2, EM_SETSEL, 0, -1);
 			SendMessage(hEdit2, EM_REPLACESEL, NULL, (LPARAM)"");
 			EnableWindow(hOKbutton, TRUE);
-
 			return TRUE;
+
 		case IDCANCEL:
 			EndDialog(hDlg, 0);
 			return TRUE;
@@ -225,6 +225,7 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 	pBody = (LPSTR) (pPacket->cData + sizeof(PACKET_HEADER));
 	iBodySize = hHeader.iSize - sizeof(PACKET_HEADER);
+
 	switch (hHeader.iFlag)
 	{
 	case WSABUFFER_CHATTING:
@@ -255,6 +256,8 @@ VOID SendChatting()
 	int iSendTot = 0;
 	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + strlen(cBuf) + 1;
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
+//---------------
+
 	LPSTR pBody = NULL;
 
 
@@ -301,7 +304,11 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	wcscpy(wFileName, L"C:\\beginnerC\\ReceiveBMP.bmp");
 	
 
-	hFile = CreateFileW(wFileName, GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	hFile = CreateFile(wFileName, GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if ( hFile == INVALID_HANDLE_VALUE )
+	{
+	}
 	WriteFile(hFile, pBody, iBodySize, &dwWrite, NULL); 
 	CloseHandle(hFile);
 #if 1
@@ -314,7 +321,6 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	lpBmi = new BITMAPINFO;
 	ZeroMemory(lpBmi, sizeof(BITMAPINFO));
 	memcpy(lpBmi, pBody + sizeof(BITMAPFILEHEADER), sizeof(BITMAPINFO));
-	
 	
 
 	SetDIBits(hRecvMemDC, hBitmap, 0, bi.biHeight, lpBit, lpBmi, DIB_RGB_COLORS);
@@ -360,6 +366,7 @@ VOID VictoryOnGame()
 {
 	KillTimer(hWndMain, TIMER_TYPE_DOWN);
 	KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
+
 	GameStatus = GAMEOVER;
 
 	MessageBox(hWndMain, TEXT("You Winner!!"), TEXT("NOTICE"), MB_OK);

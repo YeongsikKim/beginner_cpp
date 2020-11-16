@@ -9,3 +9,4 @@ VOID SettingBMPHeader();
 VOID CreateReadyButton(HWND hWnd);
 VOID ClickedReadyButton();
 VOID AllReadyIsDone(HWND hWnd);
+VOID SendFunction(int iFlag, int iTotSize, LPVOID pBodyBuf);

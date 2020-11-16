@@ -15,7 +15,6 @@ VOID AddUserInfo(SOCKADDR_IN * pAddrClient, SOCKET hClientSock)
 		}
 	}
 
-
 	pUserInfo = new USERINFO;
 	ZeroMemory(pUserInfo, sizeof(USERINFO));
 
@@ -38,6 +37,7 @@ LPUSERINFO GetUserInfo(SOCKADDR_IN * pAddrClient)
 			break;
 		}
 	}
+
 	return pReturn;
 }
 
@@ -71,9 +71,11 @@ VOID RemoveUserInfo(SOCKET hSock)
 {
 	iterUser = mUSER.find(hSock);
 
-	if (iterUser != mUSER.end())
+	if ( iterUser != mUSER.end() )
 	{
 		delete iterUser->second;
+		iterUser->second = NULL;
+
 		mUSER.erase(iterUser);
 	}
 }
@@ -98,7 +100,6 @@ SOCKET GetSock(LPUSERINFO pUserInfo)
 			break;
 		}
 	}
-
 
 	return hSock;
 }
