@@ -241,7 +241,7 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WSABUFFER_END:
-
+		VictoryOnGame();
 		break;
 
 	default:
@@ -297,18 +297,10 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	DWORD dwWrite = 0;
 	wcscpy(wFileName, L"C:\\beginnerC\\ReceiveBMP.bmp");
 	
-/*
-	streamRecv.open("c:\\beginnerC\\RecievedBMP.bmp", ios::binary);
-	if (!streamRecv.is_open())
-	{
-		cout << "File open error!!" << endl;
-		exit(-1);
-	}
-	streamRecv.write((LPSTR)pBody, iBodySize);
-	streamRecv.close();
-*/
+
 	hFile = CreateFileW(wFileName, GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	WriteFile(hFile, pBody, iBodySize, &dwWrite, NULL); 
+	CloseHandle(hFile);
 #if 1
 	hdc = GetDC(hWndMain);
 	hRecvMemDC = CreateCompatibleDC(NULL);
@@ -360,33 +352,6 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 }
 
 
-VOID AllReadyIsDone(HWND hWnd)
-{
-	int x = 0;
-	int y = 0;
-
-	if (GameStatus != GAMEOVER)
-	{
-		return;
-	}
-	for (x = 0; x<BW + 2; x++)
-	{
-		for (y = 0; y<BH + 2; y++)
-		{
-			board[x][y] = (y==0 || y==BH+1 || x==0 || x==BW+1)?WALL:EMPTY;
-		}
-	}
-	score		= 0;
-	bricknum	= 0;
-	GameStatus	= RUNNING;
-	nbrick		= random(SIZEOFSHAPE/SIZEOFBLCOK);
-	MakeNewBrick();
-	iInterval	= TIMER_TYPE_DOWN_DELAY;
-	SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
-	SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
-
-	ShowWindow(g_hReadyButton, SW_HIDE);
-}
 
 VOID VictoryOnGame()
 {
@@ -395,4 +360,7 @@ VOID VictoryOnGame()
 	GameStatus = GAMEOVER;
 
 	MessageBox(hWndMain, TEXT("You Winner!!"), TEXT("NOTICE"), MB_OK);
+
+	SetWindowText(g_hReadyButton, TEXT("Ready"));
+	ShowWindow(g_hReadyButton, SW_SHOW);
 }

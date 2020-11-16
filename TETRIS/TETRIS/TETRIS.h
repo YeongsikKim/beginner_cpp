@@ -8,3 +8,4 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize);
 VOID SettingBMPHeader();
 VOID CreateReadyButton(HWND hWnd);
 VOID ClickedReadyButton();
+VOID AllReadyIsDone(HWND hWnd);

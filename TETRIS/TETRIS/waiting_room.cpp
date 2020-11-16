@@ -2,6 +2,7 @@
 
 LPNMITEMACTIVATE g_lpNIA;
 int g_iSaveRoomNumber;
+BOOL bCreateRoom;
 
 BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -25,13 +26,24 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		switch(LOWORD(wParam))
 		{
 		case IDC_BUTTON1:
+			bCreateRoom = FALSE;
 			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAKING), NULL, DlgProc_MakingRoom);
-			EndDialog(hDlg, 0);
+			if (bCreateRoom == TRUE)
+			{
+				EndDialog(hDlg, 0);
+			}
 			break;
+
+		case IDC_BUTTON2:
+			ListView_DeleteAllItems(hList);
+			SendingRenew();
+			break;
+
 		case IDOK:
 			JoinInTheRoom();
 			EndDialog(hDlg, 0);
 			break;
+
 		case IDCANCEL:
 			exit(-1); 
 			break;
@@ -74,6 +86,7 @@ VOID InitProc_Waiting(HWND hDlg)
 	hRoomCreate	= GetDlgItem(hDlg, IDC_BUTTON1);
 	hOKbutton2	= GetDlgItem(hDlg, IDOK);
 	hEdit		= GetDlgItem(hDlg, IDC_EDIT_ROOMNAME);
+	hResetKey	= GetDlgItem(hDlg, IDC_BUTTON2);
 
 	COL.mask		= LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	COL.fmt			= LVCFMT_LEFT;
@@ -212,7 +225,7 @@ VOID ViewRoomList(char *pBody, int iBodySize)
 #endif
 }
 
-VOID CreateRoom(HWND hDlg)
+BOOL CreateRoom(HWND hDlg)
 {
 	int iSendTot = 0;
 	int iSendSize = 0;
@@ -222,6 +235,11 @@ VOID CreateRoom(HWND hDlg)
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
 
 	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, (LPSTR)pPacket->cData, NAMEBUF+1);
+	if ( strcmp(pPacket->cData, "") == 0 )
+	{
+		MessageBox(hDlg, _T("Can't make the room which name is blank"), _T("Error"), NULL);
+		return FALSE;
+	}
 	DWORD dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
 
@@ -252,7 +270,7 @@ VOID CreateRoom(HWND hDlg)
 
 	delete pRespBuf;
 	delete pPacket;
-	return;	
+	return TRUE;
 }
 
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -266,7 +284,7 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		switch(LOWORD(wParam))
 		{
 		case IDOK:
-			CreateRoom(hDlg);
+			bCreateRoom = CreateRoom(hDlg);
 			EndDialog(hDlg, 0);
 			return TRUE;
 		case IDCANCEL:

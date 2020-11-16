@@ -116,6 +116,7 @@ extern HWND			hRoomCreate;
 extern HWND			hOKbutton2;
 extern HWND			hEdit;
 extern HWND			g_hReadyButton;
+extern HWND			hResetKey;
 extern SOCKET		sock_room;
 
 extern tag_Status	GameStatus;

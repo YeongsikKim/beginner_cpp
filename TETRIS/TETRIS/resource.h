@@ -28,6 +28,7 @@
 #define IDC_LIST1                       1005
 #define IDC_BUTTON1                     1007
 #define IDC_EDIT_ROOMNAME               1009
+#define IDC_BUTTON2                     1010
 #define IDM_GAME_START                  32771
 #define ID_32772                        32772
 #define IDM_GAME_PAUSE                  32773
@@ -42,7 +43,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        143
 #define _APS_NEXT_COMMAND_VALUE         32776
-#define _APS_NEXT_CONTROL_VALUE         1010
+#define _APS_NEXT_CONTROL_VALUE         1011
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

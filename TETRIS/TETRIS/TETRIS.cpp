@@ -62,7 +62,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			DispatchMessage(&iMessage);
 		}
 	}
-
+	QuitRoom();
 	//Close Packet
 	itPacket = mPACKET.find(hSock);
 	delete itPacket->second;
@@ -223,7 +223,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case IDM_GAME_EXIT:
-			QuitRoom();
+//			QuitRoom();
 			DestroyWindow(hWnd);
 			break;
 
@@ -419,26 +419,28 @@ VOID MakeNewBrick()
 		KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
 		GameStatus = GAMEOVER;
 
-		MessageBox(hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
-	}
+		//Sending "I am game over"
+		dwRespBufSize = sizeof(PACKET_HEADER) + 1;
+		pRespBuf = new BYTE[dwRespBufSize];
 
-	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
-	pRespBuf = new BYTE[dwRespBufSize];
+		pHeader = (LPPACKET_HEADER) pRespBuf;
 
-	pHeader = (LPPACKET_HEADER) pRespBuf;
-	
-	pHeader->iFlag = WSABUFFER_END;
-	pHeader->iSize = sizeof(PACKET_HEADER);
-
-	do 
-	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-		if (iSendLen == SOCKET_ERROR)
+		pHeader->iFlag = WSABUFFER_END;
+		pHeader->iSize = sizeof(PACKET_HEADER);
+		do 
 		{
-			err_quit("End send()");
-		}
-		iSendTot += iSendLen;
-	} while (pHeader->iSize != iSendTot);
+			iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+			if (iSendLen == SOCKET_ERROR)
+			{
+				err_quit("End send()");
+			}
+			iSendTot += iSendLen;
+		} while (pHeader->iSize != iSendTot);
+
+		MessageBox(hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
+		SetWindowText(g_hReadyButton, TEXT("Ready"));
+		ShowWindow(g_hReadyButton, SW_SHOW);
+	}	
 }
 
 
@@ -572,7 +574,6 @@ VOID QuitRoom()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
-	
 }
 
 VOID SendingBMP()
@@ -737,4 +738,32 @@ VOID ClickedReadyButton()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
+}
+
+VOID AllReadyIsDone(HWND hWnd)
+{
+	int x = 0;
+	int y = 0;
+
+	if (GameStatus != GAMEOVER)
+	{
+		return;
+	}
+	for (x = 0; x<BW + 2; x++)
+	{
+		for (y = 0; y<BH + 2; y++)
+		{
+			board[x][y] = (y==0 || y==BH+1 || x==0 || x==BW+1)?WALL:EMPTY;
+		}
+	}
+	score		= 0;
+	bricknum	= 0;
+	GameStatus	= RUNNING;
+	nbrick		= random(sizeof(Shape)/sizeof(Shape[0]));
+	MakeNewBrick();
+	iInterval	= TIMER_TYPE_DOWN_DELAY;
+	SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
+	SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
+
+	ShowWindow(g_hReadyButton, SW_HIDE);
 }

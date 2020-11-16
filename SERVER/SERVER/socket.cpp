@@ -185,6 +185,8 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		RemoveUserInfo(hClientSock);
+
+		printf("[Server] Successfully Clean Room\n");
 		return;
 
 	case WSABUFFER_READY:
@@ -223,7 +225,7 @@ BOOL CreateRoomInfo(char * buf)
 	RoomInfo->iPeopleIN = 1;
 
 	mROOM.insert(pair<int, ROOMINFO*>(g_iRoomIDX, RoomInfo));
-	printf("Successfully Create Room!\n");
+	printf("[Server] Successfully Create Room!\n");
 
 	g_iTempRoomNumber = g_iRoomIDX;
 	return TRUE;
@@ -327,12 +329,12 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 		do 
 		{
 			iSendLen = send(hOtherSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-			printf("Image Send(%lu), ToTal(%d), Cur(%d), SendLen(%d)(%d)\nSock(%X)\n", (iterUser->second->addr), pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen, hOtherSock);
 			if (iSendLen == SOCKET_ERROR)
 			{
 				break;
 			}
 			iSendTot += iSendLen;
+			printf("Image Send(%lu), ToTal(%d), Cur(%d), SendLen(%d)(%d)\nSock(%X)\n", (iterUser->second->addr), pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen, hOtherSock);
 		} while (pHeader->iSize != iSendTot);
 	}
 #endif
@@ -561,6 +563,7 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 	SOCKET hClientSocket = 0;
 	SOCKET hOtherSock = 0;
 	LPUSERINFO pClientUserInfo = NULL;
+	LPUSERINFO pOtherUserInfo = NULL;
 	
 	int iSendLen = 0;
 	int iSendTot = 0;
@@ -590,6 +593,9 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 		return;
 	}
 	
+	pClientUserInfo->iStatus = NOTREADY;
+	iterUser->second->iStatus = NOTREADY;
+
 	hOtherSock = GetSock(iterUser->second);
 	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
 	pRespBuf = new BYTE[dwRespBufSize];

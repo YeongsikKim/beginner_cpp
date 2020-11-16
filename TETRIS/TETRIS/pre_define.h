@@ -50,8 +50,3 @@
 
 //Menu Clicked
 #define MENU_READYBUTTON	0x00000001
-
-
-//Block Size
-#define SIZEOFSHAPE			1152
-#define SIZEOFBLCOK			128
