@@ -191,6 +191,14 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		ReadyStatus(hClientSock, pClientSocketInfo);
 		break;
 
+	case WSABUFFER_NOTREADY:
+		NotReadyStatus(pClientSocketInfo);
+		break;
+
+	case WSABUFFER_END:
+		GameIsOver(pClientSocketInfo);
+		break;
+
 	default:
 		break;
 	}
@@ -430,8 +438,7 @@ VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)
 	pHeader = new PACKET_HEADER;
 	ZeroMemory(pHeader, sizeof(PACKET_HEADER));
 
-	GetUserInfo(pClientSocketInfo);
-	g_iTempRoomNumber = atoi(pBody);
+	memcpy(&g_iTempRoomNumber, pBody, sizeof(int));
 
 	iterRoom = mROOM.find(g_iTempRoomNumber);
 	if (iterRoom != mROOM.end())
@@ -461,12 +468,15 @@ VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)
 
 VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 {
+	SOCKET hOthetSocket = 0;
 	LPUSERINFO pClientInfo = NULL;
 	DWORD dwRespBufSize = 0;
 	PBYTE pRespBuf = NULL;
 	LPPACKET_HEADER pHeader = NULL;
 	int iSendLen = 0;
 	int iSendTot = 0;
+	SOCKADDR_IN addrClient = {0,};
+	int iAddrLen = 0;
 
 	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
@@ -476,6 +486,10 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 	pClientInfo = GetUserInfo(pClientSockInfo);
 	
 	pClientInfo->iStatus = READY;
+
+	iAddrLen = sizeof(addrClient);
+	getpeername(hClientSock, (SOCKADDR*)&addrClient, &iAddrLen);
+	printf("%s is Ready\n", inet_ntoa(addrClient.sin_addr));
 
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
@@ -489,7 +503,7 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 			break;
 		}
 	}
-	if (iterUser == mUSER.end())
+	if (iterUser == mUSER.end()) //There is not player
 	{
 		return;
 	}
@@ -499,7 +513,7 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 		pHeader->iFlag = WSABUFFER_START;
 		pHeader->iSize = sizeof(PACKET_HEADER);
 
-		do 
+		do
 		{
 			iSendLen = send(hClientSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 			if (iSendLen == SOCKET_ERROR)
@@ -509,5 +523,87 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 			
 			iSendTot += iSendLen;
 		} while (pHeader->iSize != iSendTot);
+		
+		iSendTot = 0;
+		hOthetSocket = GetSock(iterUser->second);
+		do
+		{
+			iSendLen = send(hOthetSocket, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+			if (iSendLen == SOCKET_ERROR)
+			{
+				err_quit("Start Send()");
+			}
+
+			iSendTot += iSendLen;
+		} while (pHeader->iSize != iSendTot);
 	}
+}
+
+VOID NotReadyStatus(LPSOCKETINFO pClientSockInfo)
+{
+	SOCKET hClientSock = 0;
+	LPUSERINFO pUserinfo = NULL;
+	SOCKADDR_IN addrClient = {0,};
+	int iAddrLen = 0;
+
+	pUserinfo = GetUserInfo(pClientSockInfo);
+	pUserinfo->iStatus = NOTREADY;
+
+	hClientSock = pClientSockInfo->sock;
+	iAddrLen = sizeof(SOCKADDR_IN);
+	getpeername(hClientSock, (SOCKADDR*)&addrClient, &iAddrLen);
+
+	printf("%s is Not Ready\n", inet_ntoa(addrClient.sin_addr));
+}
+
+VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
+{
+	SOCKET hClientSocket = 0;
+	SOCKET hOtherSock = 0;
+	LPUSERINFO pClientUserInfo = NULL;
+	
+	int iSendLen = 0;
+	int iSendTot = 0;
+	LPPACKET_HEADER pHeader = NULL;
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
+
+
+	hClientSocket = pClientSocketInfo->sock;
+	pClientUserInfo = GetUserInfo(pClientSocketInfo);
+
+	for ( iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++ )
+	{
+		if ( pClientUserInfo == iterUser->second )
+		{
+			continue;
+		}
+		
+		if ( iterUser->second->iRoomNumber == pClientUserInfo->iRoomNumber )
+		{
+			break;
+		}
+	}
+
+	if ( iterUser == mUSER.end() )
+	{
+		return;
+	}
+	
+	hOtherSock = GetSock(iterUser->second);
+	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+	pHeader = (LPPACKET_HEADER)pRespBuf;
+
+	pHeader->iFlag = WSABUFFER_END;
+	pHeader->iSize = sizeof(PACKET_HEADER);
+	do 
+	{
+		iSendLen = send(hOtherSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if (iSendLen == SOCKET_ERROR)
+		{
+			err_quit("End send()");
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
 }

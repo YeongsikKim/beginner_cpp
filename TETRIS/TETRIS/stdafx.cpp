@@ -43,6 +43,7 @@ HDC hCompare;
 HDC hTempDC;
 int iSize;
 HDC hMemDC;
+HDC hRecvMemDC;
 HGDIOBJ old_obj;
 HBITMAP hBitmap;
 

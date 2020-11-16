@@ -137,6 +137,7 @@ extern HDC hCompare;
 extern HDC hTempDC;
 extern int iSize;
 extern HDC hMemDC;
+extern HDC hRecvMemDC;
 extern HGDIOBJ old_obj;
 extern HBITMAP hBitmap;
 

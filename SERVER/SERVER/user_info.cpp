@@ -10,6 +10,7 @@ VOID AddUserInfo(SOCKADDR_IN * pAddrClient, SOCKET hClientSock)
 		if (iterUser->second->addr == pAddrClient->sin_addr.s_addr)
 		{
 			iterUser->second->iRoomNumber = g_iTempRoomNumber;
+			iterUser->second->iStatus	= 0;
 			return;
 		}
 	}

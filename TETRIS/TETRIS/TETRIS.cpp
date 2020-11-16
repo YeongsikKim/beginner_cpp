@@ -6,7 +6,7 @@
 
 
 LPCTSTR			lpszClass = TEXT("Tetris3");
-Point			Shape[36][4][4]=
+Point			Shape[][4][4]=
 {
 	{{0,0,1,0,2,0,-1,0},{0,0,0,1,0,-1,0,-2},{0,0,1,0,2,0,-1,0},{0,0,0,1,0,-1,0,-2}},
 	{{0,0,1,0,0,1,1,1,},{0,0,1,0,0,1,1,1},{0,0,1,0,0,1,1,1},{0,0,1,0,0,1,1,1}},
@@ -401,6 +401,13 @@ VOID MakeNewBrick()
 	nx			= BW/2;
 	ny			= 3;
 	rot			= 0;
+	//Game over Send
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
+	LPPACKET_HEADER pHeader = NULL;
+	int iSendLen = 0;
+	int iSendTot = 0;
+
 
 	bricknum++;
 
@@ -414,6 +421,24 @@ VOID MakeNewBrick()
 
 		MessageBox(hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
 	}
+
+	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+
+	pHeader = (LPPACKET_HEADER) pRespBuf;
+	
+	pHeader->iFlag = WSABUFFER_END;
+	pHeader->iSize = sizeof(PACKET_HEADER);
+
+	do 
+	{
+		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if (iSendLen == SOCKET_ERROR)
+		{
+			err_quit("End send()");
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
 }
 
 
@@ -670,7 +695,7 @@ VOID SettingBMPHeader()
 VOID CreateReadyButton(HWND hWnd)
 {
 	g_hReadyButton = CreateWindow(TEXT("Button"), TEXT("Ready"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-		(BW+12)*TS + 100, (BH+2)*TS - 50, 100, 100, hWnd, (HMENU)MENU_READYBUTTON, g_hInst, NULL);
+		(BW+12)*TS + 100, (BH+2)*TS - 100, 100, 50, hWnd, (HMENU)MENU_READYBUTTON, g_hInst, NULL);
 
 }
 

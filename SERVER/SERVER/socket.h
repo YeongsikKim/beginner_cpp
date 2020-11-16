@@ -15,3 +15,5 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize);
 VOID RenewWaitingRoom();
 VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody);
 VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo);
+VOID NotReadyStatus(LPSOCKETINFO pClientSockInfo);
+VOID GameIsOver(LPSOCKETINFO pClientSocketInfo);

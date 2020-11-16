@@ -240,6 +240,10 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		AllReadyIsDone(hWndMain);
 		break;
 
+	case WSABUFFER_END:
+
+		break;
+
 	default:
 		break;
 	}
@@ -252,6 +256,7 @@ VOID SendChatting()
 	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + strlen(cBuf) + 1;
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
 	LPSTR pBody = NULL;
+
 
 	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = (LPSTR)pRespBuf + sizeof(PACKET_HEADER);
@@ -277,11 +282,22 @@ VOID SendChatting()
 VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 {
 	HDC hdc = NULL;
-	ofstream streamRecv;
-	LPBITMAPINFO pBmpHeader = NULL;
-	LPSTR pBmpBody = NULL;
-	
+	LPVOID lpBit = NULL;
+	LPBITMAPINFO lpBmi = NULL;
 
+
+//////
+	HBITMAP hImage = NULL;
+	HBITMAP hOldBitmap = NULL;
+	BITMAP bit = {0,};
+	int bx = 0;
+	int by = 0;
+	HANDLE hFile = 0;
+	WCHAR wFileName[MAX_PATH] = {0,};
+	DWORD dwWrite = 0;
+	wcscpy(wFileName, L"C:\\beginnerC\\ReceiveBMP.bmp");
+	
+/*
 	streamRecv.open("c:\\beginnerC\\RecievedBMP.bmp", ios::binary);
 	if (!streamRecv.is_open())
 	{
@@ -290,32 +306,45 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	}
 	streamRecv.write((LPSTR)pBody, iBodySize);
 	streamRecv.close();
-
-#if 0
-	hdc = GetDC(hWndMain); 
-	hMemDC = CreateCompatibleDC(NULL);
+*/
+	hFile = CreateFileW(wFileName, GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	WriteFile(hFile, pBody, iBodySize, &dwWrite, NULL); 
+#if 1
+	hdc = GetDC(hWndMain);
+	hRecvMemDC = CreateCompatibleDC(NULL);
 	hBitmap = CreateCompatibleBitmap(hdc, (BW+2)*TS, (BH+2)*TS);
 
-	SetDIBits(hMemDC, hBitmap, 0, bi.biHeight, pBody + sizeof(BITMAPINFO) + 1, lpHeader, DIB_RGB_COLORS);
-	SelectObject(hMemDC, hBitmap);
+	lpBit = pBody + sizeof(BITMAPINFO) + sizeof(BITMAPFILEHEADER);
+	//lpBmi = (LPBITMAPINFO)pBody + sizeof(BITMAPFILEHEADER) - 1;
+	lpBmi = new BITMAPINFO;
+	ZeroMemory(lpBmi, sizeof(BITMAPINFO));
+	memcpy(lpBmi, pBody + sizeof(BITMAPFILEHEADER), sizeof(BITMAPINFO));
+	
+	
+
+	SetDIBits(hRecvMemDC, hBitmap, 0, bi.biHeight, lpBit, lpBmi, DIB_RGB_COLORS);
+	SelectObject(hRecvMemDC, hBitmap);
 
 	InvalidateRect(hWndMain, NULL, FALSE);
 	UpdateWindow(hWndMain);
 
-	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, hMemDC, 0, 0, SRCCOPY);
+	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, hRecvMemDC, 0, 0, SRCCOPY);
 
-	DeleteDC(hMemDC);
+	DeleteDC(hRecvMemDC);
 	DeleteObject(hBitmap);
 #endif
 
-#if 1
-	BITMAP bit = {0,};
-	int bx = 0;
-	int by = 0;
+#if 0
 	hdc = GetDC(hWndMain);
 	hMemDC = CreateCompatibleDC(NULL);
-	HBITMAP hImage = (HBITMAP)LoadImageA(g_hInst, "c:\\beginnerC\\ReceivedBMP.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION);
-	HBITMAP hOldBitmap = (HBITMAP) SelectObject(hMemDC, hImage);
+	hImage = (HBITMAP)LoadImage(NULL, wFileName, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION | LR_LOADFROMFILE);
+
+	if ( hImage == NULL )
+	{
+		DWORD gle = WSAGetLastError();
+		printf("gle = %d\n");
+	}
+	hOldBitmap = (HBITMAP)SelectObject(hMemDC, hImage);
 
 	GetObject(hImage, sizeof(BITMAP), &bit);
 	bx = bit.bmWidth;
@@ -335,7 +364,6 @@ VOID AllReadyIsDone(HWND hWnd)
 {
 	int x = 0;
 	int y = 0;
-	Point Shape[36][4][4];
 
 	if (GameStatus != GAMEOVER)
 	{
@@ -351,9 +379,20 @@ VOID AllReadyIsDone(HWND hWnd)
 	score		= 0;
 	bricknum	= 0;
 	GameStatus	= RUNNING;
-	nbrick		= random(sizeof(Shape)/sizeof(Shape[0]));
+	nbrick		= random(SIZEOFSHAPE/SIZEOFBLCOK);
 	MakeNewBrick();
 	iInterval	= TIMER_TYPE_DOWN_DELAY;
 	SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
 	SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
+
+	ShowWindow(g_hReadyButton, SW_HIDE);
+}
+
+VOID VictoryOnGame()
+{
+	KillTimer(hWndMain, TIMER_TYPE_DOWN);
+	KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
+	GameStatus = GAMEOVER;
+
+	MessageBox(hWndMain, TEXT("You Winner!!"), TEXT("NOTICE"), MB_OK);
 }

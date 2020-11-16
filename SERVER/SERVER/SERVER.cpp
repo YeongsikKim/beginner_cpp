@@ -4,7 +4,6 @@
 #include "stdafx.h"
 
 int iSize = 0;
-int iStatusREAD = NOTBMP;
 LPVOID lpBody	= NULL;
 
 int _tmain(int argc, _TCHAR* argv[])

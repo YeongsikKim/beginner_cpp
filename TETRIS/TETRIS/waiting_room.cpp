@@ -283,7 +283,6 @@ VOID JoinInTheRoom()
 	int iSendTot = 0;
 	int iSendLen = 0;
 	int iSaveRoomNum = 0;
-	int *pSaveRoomNum = &iSaveRoomNum;
 	LPPACKET_HEADER pHeader = NULL;
 	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + sizeof(int) + 1;
 	PBYTE pRespBuf = NULL;
@@ -297,10 +296,10 @@ VOID JoinInTheRoom()
 	pHeader->iFlag = WSABUFFER_JOIN;
 	pHeader->iSize = sizeof(PACKET_HEADER) + sizeof(int);
 
-//	iSaveRoomNum = g_iSaveRoomNumber;
 
-	pSaveRoomNum = (int*)pBody;
-	*pSaveRoomNum = g_iSaveRoomNumber;
+	iSaveRoomNum = g_iSaveRoomNumber;
+	memcpy(pBody, &iSaveRoomNum, sizeof(int));
+	
 	
 	do 
 	{
