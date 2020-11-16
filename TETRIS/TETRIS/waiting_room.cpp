@@ -41,7 +41,6 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 		case IDOK:
 			JoinInTheRoom();
-			EndDialog(hDlg, 0);
 			break;
 
 		case IDCANCEL:
@@ -161,7 +160,7 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		retval		= WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
 		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
-
+		ListView_DeleteAllItems(hList);
 		SendingRenew();
 	}
 }
@@ -268,7 +267,8 @@ BOOL CreateRoom(HWND hDlg)
 	SendMessage(hEdit, EM_SETSEL, 0, -1);
 	SendMessage(hEdit, EM_REPLACESEL, NULL, (LPARAM)"");
 
-	delete pRespBuf;
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 	delete pPacket;
 	return TRUE;
 }
@@ -407,6 +407,7 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	switch (pHeader->iFlag)
 	{
 	case WSABUFFER_RENEW:
+		ListView_DeleteAllItems(hList);
 		ViewRoomList(pBody, iBodySize);
 		break;
 
@@ -415,7 +416,7 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WSABUFFER_FULL:
-		MessageBox(hDlg, _T("Can't Join this room"), NULL, MB_OK);
+		MessageBox(hDlg, _T("This Room has too many People"), NULL, MB_OK);
 		break;
 
 	case WSABUFFER_NOTFULL:

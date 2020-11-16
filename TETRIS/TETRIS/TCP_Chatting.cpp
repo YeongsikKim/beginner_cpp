@@ -277,6 +277,9 @@ VOID SendChatting()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);	
+	
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)

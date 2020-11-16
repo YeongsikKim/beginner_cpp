@@ -441,6 +441,9 @@ VOID MakeNewBrick()
 		SetWindowText(g_hReadyButton, TEXT("Ready"));
 		ShowWindow(g_hReadyButton, SW_SHOW);
 	}	
+	
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 
@@ -574,6 +577,9 @@ VOID QuitRoom()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
+	
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 VOID SendingBMP()
@@ -613,6 +619,9 @@ VOID SendingBMP()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 
@@ -738,6 +747,9 @@ VOID ClickedReadyButton()
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 VOID AllReadyIsDone(HWND hWnd)
