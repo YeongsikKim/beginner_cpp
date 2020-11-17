@@ -5,61 +5,57 @@
 #include "stdafx.h"
 
 //TETRIS Global Variable
-HINSTANCE		g_hInst;								
-HWND			hWndMain;
-HWND			hList, hRoomCreate, hOKbutton2, hEdit;
-HWND			hResetKey;
+HINSTANCE		g_hInst;
+HWND			g_hWndMain;
+HWND			g_hList;
+HWND			g_hRoomCreate;
+HWND			g_hOKbutton2;
+HWND			g_hRoomEdit;
+HWND			g_hResetKey;
 HWND			g_hReadyButton;
-SOCKET			sock_room;
+HWND			g_hChatWindow;
+SOCKET			g_hSockRoom;
 
-tag_Status		GameStatus;
+tag_Status		eGameStatus;
 
 
 
 int	board[BW+2][BH+2];
-int nx, ny;
-int brick, rot;
-int nbrick;
-int score;
-int bricknum;
+int g_iWidth, g_iHeigth;
+int g_iBrick, g_iRotation;
+int g_iNumBrick;
+int g_iScore;
+int g_iBrickNum;
 int iInterval;
 HBITMAP hBit[11];
 
 
 
 //Chatting Global Variable
-SOCKET		hSock;
-char		cBuf[CHATSIZE];
-HWND		hEdit1, hEdit2, hOKbutton;
-LVITEMA		LI;
+SOCKET		g_hSock;
+HWND		g_hButtonMakeRoom;
+HWND		g_hChatting;
+HWND		g_hOKbutton;
+LVITEMA		g_tLI;
 
 
+BITMAPINFOHEADER	g_tBmpInfoHeader;
+BITMAPFILEHEADER	g_tBmpFileHeader;
+LPBITMAPINFO		g_lpBmpHeader;
 
-BITMAPINFOHEADER bi;
-BITMAPFILEHEADER fh;
-LPBITMAPINFO lpHeader;
+LPVOID		g_lpBody;
+HDC			g_hCompare;
+HDC			g_hTempDC;
+int			g_iSize;
+HDC			g_hMemDC;
+HDC			g_hRecvMemDC;
+HGDIOBJ		g_old_obj;
+HBITMAP		g_hBitmap;
 
-LPVOID lpBody;
-HDC hCompare;
-HDC hTempDC;
-int iSize;
-HDC hMemDC;
-HDC hRecvMemDC;
-HGDIOBJ old_obj;
-HBITMAP hBitmap;
-
-int iRecvSize;
-LPVOID lpRecvBody;
 
 
 LPVOID lpBMPFile;
 int iFileSize;
-
-
-ofstream stream;
-ifstream streamSending;
-ofstream streamTest;
-
 
 map<SOCKET, LPPACKET_BODY> mPACKET;
 map<SOCKET, LPPACKET_BODY>::iterator itPacket;

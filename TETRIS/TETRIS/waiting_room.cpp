@@ -9,13 +9,12 @@ BOOL bCreateRoom;
 
 BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	int bRet		= TRUE;
-	int retval		= 0;
+	int iRet		= TRUE;
 
 	LPNMHDR hdr			= NULL;
 	LPNMLISTVIEW nlv	= NULL;
 	
-	WCHAR Caption[NAMEBUF+1]	= {0,};
+	WCHAR wCaption[NAMEBUF+1]	= {0,};
 
 	hdr		= (LPNMHDR)lParam;
 	nlv		= (LPNMLISTVIEW)lParam;
@@ -40,7 +39,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				break;
 
 			case IDC_BUTTON2:
-				ListView_DeleteAllItems(hList);
+				ListView_DeleteAllItems(g_hList);
 				SendingRenew();
 				break;
 
@@ -53,7 +52,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				break;
 			}
 
-			bRet = FALSE;
+			iRet = FALSE;
 		}
 		break;
 
@@ -65,18 +64,17 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		switch (((LPNMHDR)lParam)->code)
 		{
 		case LVN_ITEMCHANGED:
-			EnableWindow(hOKbutton2, TRUE);
+			EnableWindow(g_hOKbutton2, TRUE);
 			g_lpNIA	= (LPNMITEMACTIVATE)lParam;
 			g_iSaveRoomNumber = GetRoomNumber();
-
-			printf("Item : %d, %d, TEXT : %s\n", g_lpNIA->iItem, g_lpNIA->iSubItem, Caption);
 			break;
 		}
 		break;
 
 	case WM_DESTROY:
 		EndDialog(hDlg, 0);
-		closesocket(sock_room);
+
+		closesocket(g_hSockRoom);
 		return TRUE;
 	}
 
@@ -89,11 +87,11 @@ VOID InitProc_Waiting(HWND hDlg)
 	int retval	= 0;
 	LVCOLUMN	COL;
 
-	hList		= GetDlgItem(hDlg, IDC_LIST1);
-	hRoomCreate	= GetDlgItem(hDlg, IDC_BTN_MAKE_ROOM);
-	hOKbutton2	= GetDlgItem(hDlg, IDOK);
-	hEdit		= GetDlgItem(hDlg, IDC_EDIT_ROOMNAME);
-	hResetKey	= GetDlgItem(hDlg, IDC_BUTTON2);
+	g_hList			= GetDlgItem(hDlg, IDC_LIST1);
+	g_hRoomCreate	= GetDlgItem(hDlg, IDC_BTN_MAKE_ROOM);
+	g_hOKbutton2	= GetDlgItem(hDlg, IDOK);
+	g_hRoomEdit		= GetDlgItem(hDlg, IDC_EDIT_ROOMNAME);
+	g_hResetKey		= GetDlgItem(hDlg, IDC_BUTTON2);
 
 	COL.mask		= LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	COL.fmt			= LVCFMT_LEFT;
@@ -101,17 +99,17 @@ VOID InitProc_Waiting(HWND hDlg)
 
 	COL.pszText		= L"Room Name";
 	COL.iSubItem	= 0;
-	SendMessage(hList, LVM_INSERTCOLUMN, 0, (LPARAM)&COL);
+	SendMessage(g_hList, LVM_INSERTCOLUMN, 0, (LPARAM)&COL);
 
 	COL.pszText		= L"Room ID";
 	COL.iSubItem	= 1;
-	SendMessage(hList, LVM_INSERTCOLUMN, 1, (LPARAM)&COL);
+	SendMessage(g_hList, LVM_INSERTCOLUMN, 1, (LPARAM)&COL);
 
 	COL.pszText		= L"personnel";
 	COL.iSubItem	= 2;
-	SendMessage(hList, LVM_INSERTCOLUMN, 2, (LPARAM)&COL);
+	SendMessage(g_hList, LVM_INSERTCOLUMN, 2, (LPARAM)&COL);
 
-	EnableWindow(hOKbutton2, FALSE);
+	EnableWindow(g_hOKbutton2, FALSE);
 
 
 
@@ -121,8 +119,8 @@ VOID InitProc_Waiting(HWND hDlg)
 	
 	
 	//Socket()
-	sock_room	= socket(AF_INET, SOCK_STREAM, 0);
-	if (sock_room == INVALID_SOCKET) err_quit("socket()");
+	g_hSockRoom	= socket(AF_INET, SOCK_STREAM, 0);
+	if (g_hSockRoom == INVALID_SOCKET) err_quit("socket()");
 
 	SOCKADDR_IN serveraddr = {0,};
 	serveraddr.sin_family		= AF_INET;
@@ -132,13 +130,13 @@ VOID InitProc_Waiting(HWND hDlg)
 
 
 	//WSAAsyncSelect()
-	retval = WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
+	retval = WSAAsyncSelect(g_hSockRoom, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
 
 	if (retval == SOCKET_ERROR) 
 		err_quit("WSAAsyncSelect()");
 
 	//connect()
-	retval = connect(sock_room, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	retval = connect(g_hSockRoom, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 
 	if (retval == INVALID_SOCKET)
 	{
@@ -154,12 +152,12 @@ VOID InitProc_Waiting(HWND hDlg)
 
 VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	int retval		= 0;
+	int iRetval		= 0;
 
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_CLOSE:
-		closesocket(sock_room);
+		closesocket(g_hSockRoom);
 		break;
 
 	case FD_READ:
@@ -168,71 +166,45 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 	case FD_CONNECT:
 		//WSAAsyncSelect()
-		retval		= WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
-		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
+		iRetval = WSAAsyncSelect(g_hSockRoom, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
 
-		ListView_DeleteAllItems(hList);
+		if (iRetval == SOCKET_ERROR)
+		{
+			err_quit("WSAAsyncSelect()");
+		}
+
+		ListView_DeleteAllItems(g_hList);
 		SendingRenew();
 	}
 }
 
 VOID ViewRoomList(char *pBody, int iBodySize)
 {
-#if 1
 	int iSizeOfRoom = 0;
 	char cNumOfRoom[10] = {0,};
 
-	LI.mask			= LVIF_TEXT;
-	LI.iItem		= 0;
+	g_tLI.mask			= LVIF_TEXT;
+	g_tLI.iItem		= 0;
 
 	while (iSizeOfRoom < iBodySize)
 	{
-		LI.iSubItem = 0;
-		LI.pszText = pBody + (sizeof(int) * 2) + iSizeOfRoom;
-		SendMessageA(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
+		g_tLI.iSubItem = 0;
+		g_tLI.pszText = pBody + (sizeof(int) * 2) + iSizeOfRoom;
+		SendMessageA(g_hList, LVM_INSERTITEMA, 0, (LPARAM)&g_tLI);
 
-		LI.iSubItem = 1;
-		LI.pszText = pBody + iSizeOfRoom;
-		sprintf(LI.pszText, "%d", LI.pszText[0]);
-		SendMessageA(hList, LVM_SETITEMA, 1, (LPARAM)&LI);
+		g_tLI.iSubItem = 1;
+		g_tLI.pszText = pBody + iSizeOfRoom;
+		sprintf(g_tLI.pszText, "%d", g_tLI.pszText[0]);
+		SendMessageA(g_hList, LVM_SETITEMA, 1, (LPARAM)&g_tLI);
 
-		LI.iSubItem = 2;
-		LI.pszText = pBody + sizeof(int) + iSizeOfRoom;
-		sprintf(LI.pszText, "%d/%d", LI.pszText[0], MAX_PEOPLE);
-		SendMessageA(hList, LVM_SETITEMA, 2, (LPARAM)&LI);
+		g_tLI.iSubItem = 2;
+		g_tLI.pszText = pBody + sizeof(int) + iSizeOfRoom;
+		sprintf(g_tLI.pszText, "%d/%d", g_tLI.pszText[0], MAX_PEOPLE);
+		SendMessageA(g_hList, LVM_SETITEMA, 2, (LPARAM)&g_tLI);
 
 		iSizeOfRoom += sizeof(ROOMINFO);
-		LI.iItem++;
+		g_tLI.iItem++;
 	}
-#endif
-
-#if 0
-	LPSTR cNum = NULL;
-	LPSTR cCurrentPeople = NULL;
-	char cMaxPeople[ROOMNAME] = {0,};
-	
-	LI.mask			= LVIF_TEXT;
-
-	memcpy(cNum, pBody + 0, sizeof(int));
-	memcpy(cCurrentPeople, pBody + sizeof(int) , sizeof(int));
-
-
-	LI.iSubItem		= 0;
-	strcpy(LI.pszText, pBody + (sizeof(int) * 2));
-	SendMessageA(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
-
-	LI.iSubItem		= 1;
-	strcpy(LI.pszText, cNum);
-	SendMessageA(hList, LVM_SETITEMA, 0, (LPARAM)&LI);
-
-	LI.iSubItem		= 2;
-	sprintf(cMaxPeople, "%s/%d", cCurrentPeople, MAX_PEOPLE);
-	strcpy_s(LI.pszText, sizeof(cMaxPeople), cMaxPeople);
-	SendMessageA(hList, LVM_SETITEMA, 0, (LPARAM)&LI);
-
-
-	LI.iItem++;
-#endif
 }
 
 BOOL CreateRoom(HWND hDlg)
@@ -255,7 +227,7 @@ BOOL CreateRoom(HWND hDlg)
  	DWORD dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
 
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
-	ZeroMemory(pRespBuf, dwRespBufSize); // == memset(p, 0, size);
+	ZeroMemory(pRespBuf, dwRespBufSize);
 
 
 	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
@@ -266,12 +238,12 @@ BOOL CreateRoom(HWND hDlg)
 	pHeader->iSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER);
 
 	//body setting
-	strcpy((LPSTR)pBody, pPacket->cData);		// memcpy <-- 꼭 사이즈 넣고 메모리카피 이용 왜? 버퍼이긴 때문에, 문자열이 아니기 때문에..
+	memcpy(pBody, pPacket->cData, strlen(pPacket->cData));
 
 
 	do 
 	{
-		iSendSize = send(sock_room, (char*)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendSize = send(g_hSockRoom, (char*)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendSize == SOCKET_ERROR)
 		{
 			printf("send()\n");
@@ -281,9 +253,9 @@ BOOL CreateRoom(HWND hDlg)
 
 	} while (pHeader->iSize != iSendTot);
 
-	SetFocus(hEdit);
-	SendMessage(hEdit, EM_SETSEL, 0, -1);
-	SendMessage(hEdit, EM_REPLACESEL, NULL, (LPARAM)"");
+	SetFocus(g_hRoomEdit);
+	SendMessage(g_hRoomEdit, EM_SETSEL, 0, -1);
+	SendMessage(g_hRoomEdit, EM_REPLACESEL, NULL, (LPARAM)"");
 
 	delete [] pRespBuf;
 	pRespBuf = NULL;
@@ -294,9 +266,6 @@ BOOL CreateRoom(HWND hDlg)
 
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	WCHAR Caption[100]		= {0,};
-
-
 	switch (uMsg)
 	{
 	case WM_COMMAND:
@@ -305,10 +274,11 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		case IDOK:
 			bCreateRoom = CreateRoom(hDlg);
 			EndDialog(hDlg, 0);
-			return TRUE;
+			break;
+
 		case IDCANCEL:
 			EndDialog(hDlg, 0);
-			return FALSE;
+			break;
 		}
 		return TRUE;
 	}
@@ -326,7 +296,8 @@ VOID JoinInTheRoom()
 	PBYTE pBody = NULL;
 	
 
-	pRespBuf = new BYTE[dwRespBufSize];	// 초기화 하세요~~~
+	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
 	
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = pRespBuf + sizeof(PACKET_HEADER);
@@ -338,10 +309,9 @@ VOID JoinInTheRoom()
 	iSaveRoomNum = g_iSaveRoomNumber;
 	memcpy(pBody, &iSaveRoomNum, sizeof(int));
 	
-	
 	do 
 	{
-		iSendLen = send(sock_room, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(g_hSockRoom, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
 			printf("send()\n");
@@ -360,7 +330,7 @@ int GetRoomNumber()
 
 	iBuflength = wcslen(cBuf);
 
-	ListView_GetItemText(hList, g_lpNIA->iItem, 1, cBuf, 255);
+	ListView_GetItemText(g_hList, g_lpNIA->iItem, 1, cBuf, 255);
 
 	if (iBuflength <= 1)
 	{
@@ -380,10 +350,10 @@ int GetRoomNumber()
 
 VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
-	SOCKET hSock = (SOCKET)wParam;
-	int iRecvLen = 0;
-	int iBodySize = 0;
-	int iMaxLen = 0;
+	SOCKET hSock	= (SOCKET)wParam;
+	int iRecvLen	= 0;
+	int iBodySize	= 0;
+	int iMaxLen		= 0;
 
 	LPPACKET_BODY pPacket = NULL;
 	pPacket = new PACKET_BODY;
@@ -392,7 +362,6 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 	LPPACKET_HEADER pHeader = NULL;
 	LPSTR pBody = NULL;
-
 
 	iMaxLen = BUFSIZE;
 
@@ -427,7 +396,7 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	switch (pHeader->iFlag)
 	{
 	case WSABUFFER_RENEW:
-		ListView_DeleteAllItems(hList);
+		ListView_DeleteAllItems(g_hList);
 		ViewRoomList(pBody, iBodySize);
 		break;
 
@@ -458,7 +427,7 @@ VOID SendingRenew()
 
 	do 
 	{
-		iSendLen = send(sock_room, (LPSTR)&hHeader + iSendTot, hHeader.iSize - iSendTot, NULL);
+		iSendLen = send(g_hSockRoom, (LPSTR)&hHeader + iSendTot, hHeader.iSize - iSendTot, NULL);
 
 		if ( iSendLen == SOCKET_ERROR )
 		{

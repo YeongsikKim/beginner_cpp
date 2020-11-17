@@ -3,8 +3,8 @@
 //Management Socket function
 BOOL AddSocketInfo(SOCKET sock);
 SOCKETINFO *GetSocketInfo(SOCKET sock);
-VOID RemoveSocketInfo(SOCKET sock);
-VOID SocketAcceptFunction(HWND hWnd, WPARAM wParam, LPARAM lParam);
+int RemoveSocketInfo(SOCKET hSock);
+int SocketAcceptFunction(HWND hWnd, WPARAM wParam, LPARAM lParam);
 VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam);
 
 

@@ -1,108 +1,5 @@
 #include "stdafx.h"
 
-BOOL AddSocketInfo(SOCKET sock)
-{
-	SOCKETINFO * pSockInfo = NULL;
-	
-	pSockInfo = new SOCKETINFO;
-	ZeroMemory(pSockInfo, sizeof(SOCKETINFO));
-
-	pSockInfo->sock			= sock;
-	pSockInfo->recvbytes	= 0;
-	pSockInfo->sendbytes	= 0;
-	pSockInfo->recvdelayed	= FALSE;
-
-	mSOCKET.insert(pair<int, SOCKETINFO*>(pSockInfo->sock, pSockInfo));
-
-	LPPACKET_BODY pPacket = new PACKET_BODY;
-	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-
-	mPACKET.insert(pair<SOCKET, LPPACKET_BODY>(sock, pPacket));
-	return TRUE;
-}
-
-
-SOCKETINFO * GetSocketInfo(SOCKET sock)
-{
-	SOCKETINFO *lpSocketinfo = NULL;
-
-	iterSocket = mSOCKET.find(sock);
-
-	if (iterSocket != mSOCKET.end())
-	{
-		lpSocketinfo = iterSocket->second;
-	}
-
-	return lpSocketinfo;
-}
-
-
-VOID RemoveSocketInfo(SOCKET hSock)
-{
-	LPUSERINFO lpUserinfo = NULL;
-	SOCKADDR_IN addrClient = {0,};
-	int iAddrlen	= sizeof(addrClient);
-	int iRoomNumber = 0;
-
-	getpeername(hSock, (SOCKADDR*)&addrClient, &iAddrlen);
-	printf("[TCP Server] Client Quit: IP Address = %s, Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
-
-
-	iterSocket = mSOCKET.find(hSock);
-	if (iterSocket != mSOCKET.end())
-	{
-		delete iterSocket->second;
-		mSOCKET.erase(iterSocket);
-	}
-
-	delete mPACKET[hSock];
-	iterPacket = mPACKET.find(hSock);
-	if (iterPacket != mPACKET.end())
-	{
-		mPACKET.erase(iterPacket);
-	}
-
-	closesocket(hSock);
-	hSock = NULL;
-}
-
-// 실패가 일어날 수 있는 함수는 무조건 리턴이 있어야 한다.
-VOID SocketAcceptFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
-{
-	int				iRetval				= 0;
-	int				iAddrlen			= 0;
-	SOCKETINFO *	pClientSokcetInfo	= NULL;
-	SOCKADDR_IN		addrClient			= {0,};
-	SOCKET			hClientSock				= 0;
-
-	iAddrlen		= sizeof(addrClient);
-	hClientSock		= accept(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
-
-	if (hClientSock == INVALID_SOCKET)
-	{
-		if (WSAGetLastError() != WSAEWOULDBLOCK)
-		{
-			err_display("accept()");
-		}
-		// 실패처리 의미 부여 해야지~~~
-		return;
-	}
-
-	printf("[TCP Server] Client Accept: IP address = %s Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
-	AddSocketInfo(hClientSock);
-	AddUserInfo(&addrClient, hClientSock);
-
-	iRetval = WSAAsyncSelect(hClientSock, hWnd, WM_SOCKET, FD_READ|FD_WRITE|FD_CLOSE);
-	if (iRetval == SOCKET_ERROR)
-	{
-		err_display("WSAAsyncSelect()");
-		RemoveSocketInfo(hClientSock);
-
-		// 실패처리 필요
-	}
-}
-
-
 VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	LPUSERINFO pUserInfo = NULL;
@@ -133,7 +30,10 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 			if (gle != WSAEWOULDBLOCK)
 			{
 				RemoveSocketInfo(hClientSock);
+				break;
 			}
+			Sleep(100);
+			continue;
 		}
 
 		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
@@ -214,6 +114,118 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	}
 }
 
+
+BOOL AddSocketInfo(SOCKET sock)
+{
+	SOCKETINFO * pSockInfo = NULL;
+	
+	pSockInfo = new SOCKETINFO;
+	ZeroMemory(pSockInfo, sizeof(SOCKETINFO));
+
+	pSockInfo->sock			= sock;
+	pSockInfo->recvbytes	= 0;
+	pSockInfo->sendbytes	= 0;
+	pSockInfo->recvdelayed	= FALSE;
+
+	mSOCKET.insert(pair<int, SOCKETINFO*>(pSockInfo->sock, pSockInfo));
+
+	LPPACKET_BODY pPacket = new PACKET_BODY;
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
+
+	mPACKET.insert(pair<SOCKET, LPPACKET_BODY>(sock, pPacket));
+	return TRUE;
+}
+
+
+SOCKETINFO * GetSocketInfo(SOCKET sock)
+{
+	SOCKETINFO *lpSocketinfo = NULL;
+
+	iterSocket = mSOCKET.find(sock);
+
+	if (iterSocket != mSOCKET.end())
+	{
+		lpSocketinfo = iterSocket->second;
+	}
+
+	return lpSocketinfo;
+}
+
+
+int RemoveSocketInfo(SOCKET hSock)
+{
+	LPUSERINFO lpUserinfo = NULL;
+	SOCKADDR_IN addrClient = {0,};
+	int iAddrlen	= sizeof(addrClient);
+	int iRoomNumber = 0;
+
+	getpeername(hSock, (SOCKADDR*)&addrClient, &iAddrlen);
+	printf("[TCP Server] Client Quit: IP Address = %s, Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
+
+
+	iterSocket = mSOCKET.find(hSock);
+
+	if (iterSocket == mSOCKET.end())
+	{
+		return ERR_TS_NOHAS_MAP;
+	}
+
+	delete iterSocket->second;
+	mSOCKET.erase(iterSocket);
+
+	iterPacket = mPACKET.find(hSock);
+	
+	if (iterPacket == mPACKET.end())
+	{
+		return ERR_TS_NOHAS_MAP;
+	}
+	
+	delete iterPacket->second;
+	mPACKET.erase(iterPacket);
+
+	closesocket(hSock);
+	hSock = NULL;
+
+	return TRUE;
+}
+
+// 실패가 일어날 수 있는 함수는 무조건 리턴이 있어야 한다.
+int SocketAcceptFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	int				iRetval				= 0;
+	int				iAddrlen			= 0;
+	SOCKETINFO *	pClientSokcetInfo	= NULL;
+	SOCKADDR_IN		addrClient			= {0,};
+	SOCKET			hClientSock				= 0;
+
+	iAddrlen		= sizeof(addrClient);
+	hClientSock		= accept(wParam, (SOCKADDR*)&addrClient, &iAddrlen);
+
+	if (hClientSock == INVALID_SOCKET)
+	{
+		if (WSAGetLastError() != WSAEWOULDBLOCK)
+		{
+			err_display("accept()");
+		}
+		return ERR_TS_INVALID_SOCKET;
+	}
+
+	printf("[TCP Server] Client Accept: IP address = %s Port Number = %d\n", inet_ntoa(addrClient.sin_addr), ntohs(addrClient.sin_port));
+	AddSocketInfo(hClientSock);
+	AddUserInfo(&addrClient, hClientSock);
+
+	iRetval = WSAAsyncSelect(hClientSock, hWnd, WM_SOCKET, FD_READ|FD_WRITE|FD_CLOSE);
+	if (iRetval == SOCKET_ERROR)
+	{
+		err_display("WSAAsyncSelect()");
+		RemoveSocketInfo(hClientSock);
+		return ERR_TS_INVALID_SOCKET;
+	}
+	
+	return TRUE;
+}
+
+
 BOOL CreateRoomInfo(char * buf)
 {
 
@@ -255,28 +267,13 @@ VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
 		//Sending the message only who has same number
-#if 1
 		if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber)
 		{
 			hSock = GetSock(iterUser->second);
 			
 			SendFunction(hSock, iFlag, iTotSize, pBuf);
 		}
-#endif
 		//Sending the message everyone
-#if 0
-		iSendTot = 0;
-		hSock = GetSock(iterUser->second);
-		do 
-		{
-			iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-			if (iSendLen == SOCKET_ERROR)
-			{
-				break;
-			}
-			iSendTot += iSendLen;
-		} while (pHeader->iSize != iSendTot);
-#endif
 	}
 }
 
@@ -296,7 +293,6 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 	iFlag = WSABUFFER_IMAGE;
 
 	//Sending image only who has same Room Number
-#if 1
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
 		hOtherSock = GetSock(iterUser->second);
@@ -316,23 +312,8 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 		return;
 	}
 	SendFunction(hOtherSock, iFlag, iTotSize, pBuf);
-#endif
 
 	//Sending Image to me Using DEBUG
-#if 0
-	iSendTot = 0;
-	do 
-	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-
-		printf("Image Send(%X), ToTal(%d), Cur(%d), SendLen(%d)(%d)\n", hSock, pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen);
-		if (iSendLen == SOCKET_ERROR)
-		{
-			break;
-		}
-		iSendTot += iSendLen;
-	} while (pHeader->iSize != iSendTot);
-#endif
 }
 
 
@@ -347,7 +328,6 @@ VOID RenewWaitingRoom()
 	int iSendByte = 0;
 	int iSendTot = 0;
 
-#if 1
 	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + (sizeof(ROOMINFO) * mROOM.size()) + 1;
 
 	pRespBuf = new BYTE[dwRespBufSize];
@@ -382,32 +362,6 @@ VOID RenewWaitingRoom()
 	}
 	delete [] pRespBuf;
 	pRespBuf = NULL;
-#endif
-#if 0
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + sizeof(ROOMINFO) + 1;
-	for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
-	{
-		pRespBuf = new BYTE[dwRespBufSize];
-		pHeader = (LPPACKET_HEADER) pRespBuf;
-		pBody = pRespBuf + sizeof(PACKET_HEADER);
-
-		pHeader->iFlag = WSABUFFER_RENEW;
-		pHeader->iSize = sizeof(ROOMINFO) + sizeof(PACKET_HEADER);
-
-		pRoomInfo = (ROOMINFO*)pBody;
-		memcpy(pRoomInfo, iterRoom->second, sizeof(ROOMINFO));
-
-		for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
-		{
-			sock = GetSock(iterUser->second);
-			send(sock, (LPSTR)pHeader, pHeader->iSize, NULL);
-		}
-
-		delete [] pRespBuf;
-		pRespBuf = NULL;
-	}
-#endif
 }
 
 
@@ -442,7 +396,7 @@ VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)
 				iSendLen = send(pClientSocketInfo->sock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 				if ( iSendLen == SOCKET_ERROR )
 				{
-					err_quit("NOTFULL send()");
+					break;
 				}
 				iSendTot += iSendLen;
 			} while (pHeader-> iSize != iSendTot);			
@@ -457,7 +411,7 @@ VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)
 				iSendLen = send(pClientSocketInfo->sock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 				if ( iSendLen == SOCKET_ERROR )
 				{
-					err_quit("FULL send()");
+					break;
 				}
 				iSendTot += iSendLen;
 			} while (pHeader-> iSize != iSendTot);
@@ -524,7 +478,7 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 			iSendLen = send(hClientSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 			if (iSendLen == SOCKET_ERROR)
 			{
-				err_quit("Start Send()");
+				break;
 			}
 			
 			iSendTot += iSendLen;
@@ -537,7 +491,7 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 			iSendLen = send(hOthetSocket, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 			if (iSendLen == SOCKET_ERROR)
 			{
-				err_quit("Start Send()");
+				break;
 			}
 
 			iSendTot += iSendLen;
@@ -614,7 +568,7 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 		iSendLen = send(hOtherSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
-			err_quit("End send()");
+			break;
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
@@ -652,7 +606,7 @@ VOID SendFunction(SOCKET hSock, int iFlag, int iTotSize, LPVOID pBodyBuf)
 		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if ( iSendLen == SOCKET_ERROR )
 		{
-			err_quit("send()");
+			break;
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);

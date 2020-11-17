@@ -35,9 +35,10 @@
 
 
 
-#include "TCP_Chatting.h"
-#include "TETRIS.h"
+#include "tetris_chatting.h"
+#include "tetris_main.h"
 #include "waiting_room.h"
+#include "err_print.h"
 
 
 #include "pre_define.h"
@@ -102,45 +103,45 @@ extern BOOL bRecvDelay;
 
 //TETRIS Global Variable
 extern HINSTANCE	g_hInst;								
-extern HWND			hWndMain;
+extern HWND			g_hWndMain;
 extern int			board[BW+2][BH+2];
-extern int			nx, ny;
-extern int			brick, rot;
-extern int			nbrick;
-extern int			score;
-extern int			bricknum;
+extern int			g_iWidth, g_iHeigth;
+extern int			g_iBrick, g_iRotation;
+extern int			g_iNumBrick;
+extern int			g_iScore;
+extern int			g_iBrickNum;
 extern int			iInterval;
 extern HBITMAP		hBit[11];
-extern HWND			hList; 
-extern HWND			hRoomCreate; 
-extern HWND			hOKbutton2;
-extern HWND			hEdit;
+extern HWND			g_hList; 
+extern HWND			g_hRoomCreate; 
+extern HWND			g_hOKbutton2;
+extern HWND			g_hRoomEdit;
 extern HWND			g_hReadyButton;
-extern HWND			hResetKey;
-extern SOCKET		sock_room;
+extern HWND			g_hResetKey;
+extern HWND			g_hChatWindow;
+extern SOCKET		g_hSockRoom;
 
-extern tag_Status	GameStatus;
+extern tag_Status	eGameStatus;
 
 
 //SOCKET Global variable
-extern SOCKET hSock;
-extern char cBuf[CHATSIZE];
-extern HWND hEdit1, hEdit2, hOKbutton;
-extern LVITEMA LI;
+extern SOCKET g_hSock;
+extern HWND g_hButtonMakeRoom, g_hChatting, g_hOKbutton;
+extern LVITEMA g_tLI;
 
 
 //About Bitmap
-extern BITMAPINFOHEADER bi;
-extern BITMAPFILEHEADER fh;
-extern LPBITMAPINFO lpHeader;
-extern LPVOID lpBody;
-extern HDC hCompare;
-extern HDC hTempDC;
-extern int iSize;
-extern HDC hMemDC;
-extern HDC hRecvMemDC;
-extern HGDIOBJ old_obj;
-extern HBITMAP hBitmap;
+extern BITMAPINFOHEADER g_tBmpInfoHeader;
+extern BITMAPFILEHEADER g_tBmpFileHeader;
+extern LPBITMAPINFO g_lpBmpHeader;
+extern LPVOID g_lpBody;
+extern HDC g_hCompare;
+extern HDC g_hTempDC;
+extern int g_iSize;
+extern HDC g_hMemDC;
+extern HDC g_hRecvMemDC;
+extern HGDIOBJ g_old_obj;
+extern HBITMAP g_hBitmap;
 
 extern int iRecvSize;
 extern LPVOID lpRecvBody;
@@ -148,9 +149,6 @@ extern LPVOID lpRecvBody;
 extern LPVOID lpBMPFile;
 extern int iFileSize;
 
-extern ofstream stream;
-extern ifstream streamSending;
-extern ofstream streamTest;
 
 
 extern map<SOCKET, LPPACKET_BODY> mPACKET;
