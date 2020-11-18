@@ -7,8 +7,7 @@
 //ChattingWnd.cpp define
 #define MAX_LOADSTRING	100
 #define BUFSIZE			1024*512
-#define NAMEBUF			24
-#define CHATSIZE		512
+#define SMALLBUF		512
 #define WM_SOCKET		(WM_USER+1)
 #define WM_VSTETRIS		(WM_USER+2)
 #define WM_RENEW		(WM_USER+3)
@@ -21,8 +20,6 @@
 #define random(n) (rand()%n)
 
 #define BIT_COUNT		24
-#define NOTBMP			0
-#define YESBMP			1
 
 
 //Receive Buffer Flag
@@ -55,3 +52,51 @@
 //Block Size
 #define SIZEOFSHAPE			1152
 #define SIZEOFBLCOK			128
+
+
+//Network define
+#define SIN_PORT			9000
+#define SIN_ADDR			"192.168.100.162"
+
+
+
+//Structure define
+typedef struct _Packet_Header
+{
+	int iFlag;
+	int iSize;
+}PACKET_HEADER, *LPPACKET_HEADER;
+
+typedef struct _Packet_Body
+{
+	char cData[BUFSIZE];
+	int iCurRecv;
+}PACKET_BODY, *LPPACKET_BODY;
+
+//Socket info
+typedef struct _SOCKETINFO
+{
+	SOCKET sock;
+	char buf[BUFSIZE+1];
+	int recvbytes;
+	int sendbytes;
+	BOOL recvdelayed;
+}SOCKETINFO, *LPSOCKETINFO;
+
+//Room info
+typedef struct _ROOMINFO
+{
+	int iNum;
+	int iPeopleIN;
+	char cRoomName[SMALLBUF];
+}ROOMINFO, *LPROOMINFO;
+
+struct Point
+{
+	int x, y;
+};
+
+
+//Enum define
+enum {EMPTY, BRICK, WALL = 10};
+enum tag_Status {GAMEOVER, RUNNING, PAUSE};

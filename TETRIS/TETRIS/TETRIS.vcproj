@@ -174,6 +174,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\err_debug.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -194,15 +198,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\TCP_Chatting.cpp"
+				RelativePath=".\ts_main.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\TETRIS.cpp"
+				RelativePath=".\ts_socket.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\waiting_room.cpp"
+				RelativePath=".\ts_waiting_room.cpp"
 				>
 			</File>
 		</Filter>
@@ -212,15 +216,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\err_debug.h"
+				>
+			</File>
+			<File
 				RelativePath=".\pre_define.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Resource.h"
-				>
-			</File>
-			<File
-				RelativePath=".\resource1.h"
 				>
 			</File>
 			<File
@@ -232,15 +232,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TCP_Chatting.h"
+				RelativePath=".\ts_main.h"
 				>
 			</File>
 			<File
-				RelativePath=".\TETRIS.h"
+				RelativePath=".\ts_socket.h"
 				>
 			</File>
 			<File
-				RelativePath=".\waiting_room.h"
+				RelativePath=".\ts_waiting_room.h"
 				>
 			</File>
 		</Filter>
@@ -295,6 +295,14 @@
 			</File>
 			<File
 				RelativePath=".\ChattingWnd.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\resource1.h"
 				>
 			</File>
 			<File

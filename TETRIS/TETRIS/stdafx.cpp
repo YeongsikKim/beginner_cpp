@@ -4,7 +4,7 @@
 
 #include "stdafx.h"
 
-//TETRIS Global Variable
+//ts_main Global Variable
 HINSTANCE		g_hInst;
 HWND			g_hWndMain;
 HWND			g_hList;
@@ -28,10 +28,10 @@ HBITMAP g_tBit[11];
 
 
 
-//Chatting Global Variable
+//ts_socket Global Variable
 SOCKET		g_hSock;
 SOCKET		g_hWRSock;
-char		g_cBuf[CHATSIZE];
+char		g_cBuf[SMALLBUF];
 HWND		g_hChatViewEdit;
 HWND		g_hChatInputEdit;
 HWND		g_hOkbutton;
@@ -64,6 +64,10 @@ ofstream stream;
 ifstream streamSending;
 ofstream streamTest;
 
+
+//ts_waiting_room global variable
+LPNMITEMACTIVATE g_lpNIA;
+int	g_iSaveRoomNumber;
 
 map<SOCKET, LPPACKET_BODY> mPACKET;
 map<SOCKET, LPPACKET_BODY>::iterator itPacket;
