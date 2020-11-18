@@ -25,8 +25,6 @@
 #include <commctrl.h>
 #include <string>
 #include <wingdi.h>
-#include <iostream>
-#include <fstream>
 
 // C++ header
 #include <map>
@@ -88,14 +86,11 @@ extern LPVOID			g_pRecvBody;
 extern LPVOID			g_pBMPFile;
 extern int				g_iFileSize;
 
-extern ofstream stream;
-extern ifstream streamSending;
-extern ofstream streamTest;
-
 
 //ts_waiting_room global variable
 extern LPNMITEMACTIVATE g_lpNIA;
 extern int	g_iSaveRoomNumber;
+extern BOOL g_bWhether_CreateRoom;
 
 extern map<SOCKET, LPPACKET_BODY> mPACKET;
 extern map<SOCKET, LPPACKET_BODY>::iterator itPacket;

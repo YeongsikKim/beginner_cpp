@@ -205,6 +205,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			RemoveUserInfo(hClientSock);
+			RenewWaitingRoom();
 		}
 		break;
 
@@ -283,7 +284,6 @@ VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
 		//Sending the message only who has same number
-#if 0
 		if (pUserInfo->iRoomNumber == iterUser->second->iRoomNumber)
 		{
 			iSendTot = 0;
@@ -299,21 +299,6 @@ VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 				iSendTot += iSendLen;
 			} while (pHeader->iSize != iSendTot);
 		}
-#endif
-		//Sending the message everyone
-#if 1
-		iSendTot = 0;
-		hSock = GetSock(iterUser->second);
-		do 
-		{
-			iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-			if (iSendLen == SOCKET_ERROR)
-			{
-				break;
-			}
-			iSendTot += iSendLen;
-		} while (pHeader->iSize != iSendTot);
-#endif
 	}
 
 	delete [] pRespBuf;
@@ -344,7 +329,6 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 
 
 	//Sending image only who has same Room Number
-#if 1
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
 		hOtherSock = GetSock(iterUser->second);
@@ -364,22 +348,6 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 			iSendTot += iSendLen;
 		} while ( pHeader->iSize != iSendTot );
 	}
-#endif
-	//Sending Image to me Using DEBUG
-#if 0
-	iSendTot = 0;
-	do 
-	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-
-		printf("Image Send(%X), ToTal(%d), Cur(%d), SendLen(%d)(%d)\n", hSock, pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen);
-		if (iSendLen == SOCKET_ERROR)
-		{
-			break;
-		}
-		iSendTot += iSendLen;
-	} while (pHeader->iSize != iSendTot);
-#endif
 }
 
 
@@ -395,7 +363,6 @@ VOID RenewWaitingRoom()
 	PBYTE			pBody			= NULL;
 	ROOMINFO*		pRoomInfo		= NULL;
 
-#if 1
 	dwRespBufSize = sizeof(PACKET_HEADER) + (sizeof(ROOMINFO) * mROOM.size()) + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
 	ZeroMemory(pRespBuf, dwRespBufSize);
@@ -430,32 +397,6 @@ VOID RenewWaitingRoom()
 	}
 	delete [] pRespBuf;
 	pRespBuf = NULL;
-#endif
-#if 0
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + sizeof(ROOMINFO) + 1;
-	for (iterRoom = mROOM.begin(); iterRoom != mROOM.end(); iterRoom++)
-	{
-		pRespBuf = new BYTE[dwRespBufSize];
-		pHeader = (LPPACKET_HEADER) pRespBuf;
-		pBody = pRespBuf + sizeof(PACKET_HEADER);
-
-		pHeader->iFlag = WSABUFFER_RENEW;
-		pHeader->iSize = sizeof(ROOMINFO) + sizeof(PACKET_HEADER);
-
-		pRoomInfo = (ROOMINFO*)pBody;
-		memcpy(pRoomInfo, iterRoom->second, sizeof(ROOMINFO));
-
-		for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
-		{
-			sock = GetSock(iterUser->second);
-			send(sock, (LPSTR)pHeader, pHeader->iSize, NULL);
-		}
-
-		delete [] pRespBuf;
-		pRespBuf = NULL;
-	}
-#endif
 }
 
 
@@ -472,16 +413,23 @@ VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)
 	iterRoom = mROOM.find(g_iTempRoomNumber);
 	if ( iterRoom != mROOM.end() )
 	{
-		if ( iterRoom->second->iPeopleIN < MAX_PEOPLE )
+		if ( iterRoom->second->iPeopleIN < MAX_PEOPLE || iterRoom->second->iPeopleIN > 0)
 		{
 			iterRoom->second->iPeopleIN++;
 			pHeader->iFlag = WSABUFFER_NOTFULL;
 			send(pClientSocketInfo->sock, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
 			RenewWaitingRoom();
 		}
-		else
+		else if ( iterRoom->second->iPeopleIN >= MAX_PEOPLE )
 		{					
-			printf("The number of people in Room was full\n");
+			printf("[Server] The number of people in Room was full\n");
+			pHeader->iFlag = WSABUFFER_FULL;
+			send(pClientSocketInfo->sock, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
+			RenewWaitingRoom();
+		}
+		else if ( iterRoom->second->iPeopleIN <= 0 )
+		{
+			printf("[Server] Empty Room, Wrong access\n");
 			pHeader->iFlag = WSABUFFER_FULL;
 			send(pClientSocketInfo->sock, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
 			RenewWaitingRoom();
@@ -519,7 +467,7 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 
 	iAddrLen = sizeof(tAddrClient);
 	getpeername(hClientSock, (SOCKADDR*)&tAddrClient, &iAddrLen);
-	printf("%s is Ready\n", inet_ntoa(tAddrClient.sin_addr));
+	printf("[Server] %s is Ready\n", inet_ntoa(tAddrClient.sin_addr));
 
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
 	{
@@ -583,7 +531,7 @@ VOID NotReadyStatus(LPSOCKETINFO pClientSockInfo)
 	iAddrLen = sizeof(SOCKADDR_IN);
 	getpeername(hClientSock, (SOCKADDR*)&tAddrClient, &iAddrLen);
 
-	printf("%s is Not Ready\n", inet_ntoa(tAddrClient.sin_addr));
+	printf("[Server] %s is Not Ready\n", inet_ntoa(tAddrClient.sin_addr));
 }
 
 VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
@@ -599,6 +547,7 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 
 	hClientSocket = pClientSocketInfo->sock;
 	pClientUserInfo = GetUserInfo(pClientSocketInfo);
+
 
 	for ( iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++ )
 	{
@@ -617,6 +566,9 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 	{
 		return;
 	}
+
+	pClientUserInfo->iStatus = NOTREADY;
+	iterUser->second->iStatus = NOTREADY;
 	
 	hOtherSock = GetSock(iterUser->second);
 	dwRespBufSize = sizeof(PACKET_HEADER) + 1;

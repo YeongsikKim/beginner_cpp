@@ -60,14 +60,12 @@ LPVOID	g_pBMPFile;
 int		g_iFileSize;
 
 
-ofstream stream;
-ifstream streamSending;
-ofstream streamTest;
 
 
 //ts_waiting_room global variable
 LPNMITEMACTIVATE g_lpNIA;
 int	g_iSaveRoomNumber;
+BOOL g_bWhether_CreateRoom;
 
 map<SOCKET, LPPACKET_BODY> mPACKET;
 map<SOCKET, LPPACKET_BODY>::iterator itPacket;

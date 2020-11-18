@@ -64,6 +64,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	itPacket = mPACKET.find(g_hSock);
 	delete itPacket->second;
 	mPACKET.erase(itPacket);
+
+	QuitRoom();
 	//Close Socket
 	if ( g_hSock == INVALID_SOCKET )
 	{
@@ -429,30 +431,32 @@ VOID MakeNewBrick()
 		KillTimer(g_hWndMain, TIMER_TYPE_CAPTURE);
 		GameStatus = GAMEOVER;
 
-		MessageBox(g_hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
-	}
+		dwRespBufSize = sizeof(PACKET_HEADER) + 1;
+		pRespBuf = new BYTE[dwRespBufSize];
+		ZeroMemory(pRespBuf, dwRespBufSize);
+		pHeader = (LPPACKET_HEADER) pRespBuf;
 
-	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
-	pRespBuf = new BYTE[dwRespBufSize];
-	ZeroMemory(pRespBuf, dwRespBufSize);
-	pHeader = (LPPACKET_HEADER) pRespBuf;
-	
 
-	pHeader->iFlag = WSABUFFER_END;
-	pHeader->iSize = sizeof(PACKET_HEADER);
+		pHeader->iFlag = WSABUFFER_END;
+		pHeader->iSize = sizeof(PACKET_HEADER);
 
-	do 
-	{
-		iSendLen = send(g_hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-		if ( iSendLen == SOCKET_ERROR )
+		do 
 		{
-			err_quit("End send()");
-		}
-		iSendTot += iSendLen;
-	} while ( pHeader->iSize != iSendTot );
+			iSendLen = send(g_hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+			if ( iSendLen == SOCKET_ERROR )
+			{
+				err_display("End send()");
+			}
+			iSendTot += iSendLen;
+		} while ( pHeader->iSize != iSendTot );
 
-	delete [] pRespBuf;
-	pRespBuf = NULL;
+		delete [] pRespBuf;
+		pRespBuf = NULL;
+
+		MessageBox(g_hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
+		SetWindowText(g_hReadyButton, TEXT("Ready"));
+		ShowWindow(g_hReadyButton, SW_SHOW);
+	}
 }
 
 
@@ -592,27 +596,36 @@ VOID QuitRoom()
 		iSendTot += iSendLen;
 	} while ( pHeader->iSize != iSendTot );
 
+	printf("[Server] Successfully Quit this room\n");
+
 	delete [] pRespBuf;
 	pRespBuf = NULL;
-	
 }
 
 VOID SendingBMP()
 {
-	int				iSendLen		= 0;
-	int				iSendTot		= 0;
-	DWORD			dwRespBufSize	= 0;
-	PBYTE			pRespBuf		= NULL;
-	LPSTR			pBody			= NULL;
-	LPPACKET_HEADER pHeader			= NULL;
+	int				iSendLen			= 0;
+	int				iSendTot			= 0;
+	DWORD			dwRead				= 0;
+	DWORD			dwRespBufSize		= 0;
+	PBYTE			pRespBuf			= NULL;
+	LPSTR			pBody				= NULL;
+	LPPACKET_HEADER pHeader				= NULL;
+	HANDLE			hFile				= NULL;
+	WCHAR			wFileName[SMALLBUF] = {0,};
 
 
-	streamSending.open("c:\\beginnerC\\capture.bmp", ios::binary);
-	streamSending.seekg(0, std::ios::end);
+	wcscpy(wFileName, _T("capture.bmp"));
 
-	g_iFileSize = streamSending.tellg();
+	hFile = CreateFileW(wFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	
+	if ( hFile == INVALID_HANDLE_VALUE )
+	{
+		DWORD dwGle = WSAGetLastError();
+		printf("[Error] Createfile error : %d\n", dwGle);
+	}
 
-	streamSending.seekg(0, std::ios::beg);
+	g_iFileSize = GetFileSize(hFile, NULL);
 
 	
 	dwRespBufSize = sizeof(PACKET_HEADER) + g_iFileSize + 1;
@@ -626,9 +639,8 @@ VOID SendingBMP()
 	pHeader->iSize = sizeof(PACKET_HEADER) + g_iFileSize;
 
 	//Setting Body
-	streamSending.read((LPSTR)pBody, g_iFileSize);
-	streamSending.close();
-
+	ReadFile(hFile, pBody, g_iFileSize, &dwRead, NULL);
+	CloseHandle(hFile);
 	do 
 	{
 		iSendLen = send(g_hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
@@ -646,18 +658,25 @@ VOID SendingBMP()
 
 VOID SettingBMPHeader()
 {
-	BOOL	bRet		= 0;
-	BITMAP	bitmap		= {0,};
-	int		iPalSize	= 0;
-	HDC		hbitDC		= NULL;
+	BOOL	bRet			= 0;
+	BITMAP	bitmap			= {0,};
+	int		iPalSize		= 0;
+	HDC		hbitDC			= NULL;
+	HANDLE	hFile			= NULL;
+	DWORD	dwWrite			= 0;
+	WCHAR	wBuf[SMALLBUF]	= {0,};
 
+	wcscpy(wBuf, _T("capture.bmp"));
 
-	stream.open("c:\\beginnerC\\capture.bmp", ios::binary);
-	if (!stream.is_open())
+	hFile = CreateFileW(wBuf, GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if ( hFile == INVALID_HANDLE_VALUE )
 	{
-		cout << "File open error!!" << endl;
-		return;
+		DWORD dwGle = WSAGetLastError();
+		printf("[Error] Createfile error : %d\n", dwGle);
 	}
+
+
 
 	g_hTempDC = GetDC(g_hWndMain);
 	g_hMemDC = CreateCompatibleDC(g_hTempDC);
@@ -692,7 +711,7 @@ VOID SettingBMPHeader()
 	g_tBitmap_FileHeader.bfSize = g_iSize + sizeof(BITMAPFILEHEADER);
 	g_tBitmap_FileHeader.bfType = 0x4d42;
 
-	stream.write((LPSTR)&g_tBitmap_FileHeader, sizeof(BITMAPFILEHEADER));
+	WriteFile(hFile, (LPSTR)&g_tBitmap_FileHeader, sizeof(BITMAPFILEHEADER), &dwWrite, NULL);
 
 	hbitDC = GetDC(NULL);
 
@@ -710,9 +729,9 @@ VOID SettingBMPHeader()
 	g_pBody = malloc(g_pBitmap_Info->bmiHeader.biSizeImage);
 	GetDIBits(hbitDC, g_hBitmap, 0, g_pBitmap_Info->bmiHeader.biHeight, g_pBody, g_pBitmap_Info, DIB_RGB_COLORS);
 
-	stream.write((LPSTR)&g_pBitmap_Info->bmiHeader, sizeof(BITMAPINFOHEADER));
-	stream.write((LPSTR)g_pBody, g_iSize);
-	stream.close();
+	WriteFile(hFile, (LPSTR)&g_pBitmap_Info->bmiHeader, sizeof(BITMAPINFOHEADER), &dwWrite, NULL);
+	WriteFile(hFile, (LPSTR)g_pBody, g_iSize, &dwWrite, NULL);
+	CloseHandle(hFile);
 
 	free(g_pBody);
 	g_pBody = NULL;
@@ -744,13 +763,13 @@ VOID ClickedReadyButton()
 	pHeader = (LPPACKET_HEADER) pRespBuf;
 
 	GetWindowText(g_hReadyButton, wBuf, SMALLBUF);
-	if ( wcscmp(wBuf, TEXT("Ready")) == 0 )
+	if ( wcscmp(wBuf, TEXT("Ready") ) == 0 )
 	{
 		SetWindowText(g_hReadyButton, TEXT("Cancle"));
 		pHeader->iFlag = WSABUFFER_READY;
 		pHeader->iSize = sizeof(PACKET_HEADER);
 	}
-	else if ( wcscmp(wBuf, TEXT("Cancle")) == 0 )
+	else if ( wcscmp(wBuf, TEXT("Cancle") ) == 0 )
 	{
 		SetWindowText(g_hReadyButton, TEXT("Ready"));
 		pHeader->iFlag = WSABUFFER_NOTREADY;

@@ -24,7 +24,11 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			{
 			case IDC_BUTTON1:
 				DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_MAKING), NULL, DlgProc_MakingRoom);
-				EndDialog(hDlg, 0);
+				
+				if ( g_bWhether_CreateRoom == TRUE )
+				{
+					EndDialog(hDlg, 0);
+				}
 				break;
 			case IDOK:
 				JoinInTheRoom();
@@ -202,7 +206,7 @@ VOID ViewRoomList(char *pBody, int iBodySize)
 	}
 }
 
-VOID CreateRoom(HWND hDlg)
+BOOL CreateRoom(HWND hDlg)
 {
 	int iSendTot	= 0;
 	int iSendSize	= 0;
@@ -212,16 +216,21 @@ VOID CreateRoom(HWND hDlg)
 	PBYTE pRespBuf = NULL;
 	PBYTE pBody = NULL;
 
+	pPacket = new PACKET_BODY;
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
+
+	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, (LPSTR)pPacket->cData, SMALLBUF+1);
+	
+	if ( '\0' ==pPacket->cData[0] )
+	{
+		return FALSE;
+	}
+
 	dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
 	ZeroMemory(pRespBuf, dwRespBufSize);
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = pRespBuf + sizeof(PACKET_HEADER);
-
-	pPacket = new PACKET_BODY;
-	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-
-	GetDlgItemTextA(hDlg, IDC_EDIT_ROOMNAME, (LPSTR)pPacket->cData, SMALLBUF+1);
 
 	//header setting
 	pHeader->iFlag = WSABUFFER_ROOMNAME;
@@ -249,7 +258,9 @@ VOID CreateRoom(HWND hDlg)
 	pRespBuf = NULL;
 	
 	delete pPacket;
-	return;	
+	pPacket = NULL;
+
+	return TRUE;
 }
 
 BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -261,8 +272,11 @@ BOOL CALLBACK DlgProc_MakingRoom(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		{
 		case IDOK:
 			{
-				CreateRoom(hDlg);
-				EndDialog(hDlg, 0);
+				g_bWhether_CreateRoom = CreateRoom(hDlg);
+				if ( g_bWhether_CreateRoom == TRUE )
+				{
+					EndDialog(hDlg, 0);
+				}
 			}
 			return TRUE;
 
@@ -390,8 +404,10 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	{
 	case WSABUFFER_RENEW:
 		{
+			ListView_DeleteAllItems(g_hList);
+			UpdateWindow(g_hList);
 			ViewRoomList(pBody, iBodySize);
-		}
+		} 
 		break;
 
 	case WSABUFFER_JOIN:

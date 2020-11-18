@@ -79,6 +79,72 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
+VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	SOCKET			hSock		= (SOCKET)wParam;
+	int				iRecvLen	= 0;
+	int				iBodySize	= 0;
+	int				iMaxLen		= BUFSIZE;
+	LPSTR			pBody		= NULL;
+	PACKET_HEADER	hHeader		= {0,};
+
+	LPPACKET_BODY pPacket = mPACKET[hSock];
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
+
+	while(pPacket->iCurRecv < iMaxLen)
+	{
+		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
+
+		if (iRecvLen == SOCKET_ERROR )
+		{
+			DWORD gle = WSAGetLastError();
+		}
+		pPacket->iCurRecv += ( (iRecvLen > 0) ? iRecvLen : 0 );
+
+		if (pPacket->iCurRecv >= sizeof(PACKET_HEADER))
+		{
+			memcpy(&hHeader, pPacket->cData, sizeof(PACKET_HEADER));
+			iMaxLen = hHeader.iSize;
+		}
+
+		if ( pPacket->iCurRecv >= hHeader.iSize)
+		{
+			break;
+		}
+	}
+
+	pBody = (LPSTR) (pPacket->cData + sizeof(PACKET_HEADER));
+	iBodySize = hHeader.iSize - sizeof(PACKET_HEADER);
+	switch (hHeader.iFlag)
+	{
+	case WSABUFFER_CHATTING:
+		{
+			DisplayText("[TCP Client DATA] %s\r\n", pBody);
+			EnableWindow(g_hOkbutton, true);
+		}
+		break;
+
+	case WSABUFFER_IMAGE:
+		{
+			ReadBinaryBMP(pBody, iBodySize);
+		}
+		break;
+
+	case WSABUFFER_START:
+		{
+			AllReadyIsDone(g_hWndMain);
+		}
+		break;
+
+	case WSABUFFER_END:
+		{
+			VictoryOnGame();		//////////////////////////////////////////ERROR OCCUR///////////////////////////////////////////////
+		}
+		break;
+	}
+}
+
+
 VOID InitProc(HWND hDlg)
 {
 	int			iRetval		= 0;
@@ -126,71 +192,6 @@ VOID InitProc(HWND hDlg)
 }
 
 
-
-VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
-{
-	SOCKET			hSock		= (SOCKET)wParam;
-	int				iRecvLen	= 0;
-	int				iBodySize	= 0;
-	int				iMaxLen		= BUFSIZE;
-	LPSTR			pBody		= NULL;
-	PACKET_HEADER	hHeader		= {0,};
-
-	LPPACKET_BODY pPacket = mPACKET[hSock];
-	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-
-	while(pPacket->iCurRecv < iMaxLen)
-	{
-		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
-		
-		if (iRecvLen == SOCKET_ERROR )
-		{
-			DWORD gle = WSAGetLastError();
-		}
-		pPacket->iCurRecv += ( (iRecvLen > 0) ? iRecvLen : 0 );
-
-		if (pPacket->iCurRecv >= sizeof(PACKET_HEADER))
-		{
-			memcpy(&hHeader, pPacket->cData, sizeof(PACKET_HEADER));
-			iMaxLen = hHeader.iSize;
-		}
-		
-		if ( pPacket->iCurRecv >= hHeader.iSize)
-		{
-			break;
-		}
-	}
-
-	pBody = (LPSTR) (pPacket->cData + sizeof(PACKET_HEADER));
-	iBodySize = hHeader.iSize - sizeof(PACKET_HEADER);
-	switch (hHeader.iFlag)
-	{
-	case WSABUFFER_CHATTING:
-		{
-			DisplayText("[TCP Client DATA] %s\r\n", pBody);
-			EnableWindow(g_hOkbutton, true);
-		}
-		break;
-
-	case WSABUFFER_IMAGE:
-		{
-			ReadBinaryBMP(pBody, iBodySize);
-		}
-		break;
-		
-	case WSABUFFER_START:
-		{
-			AllReadyIsDone(g_hWndMain);
-		}
-		break;
-
-	case WSABUFFER_END:
-		{
-			//VictoryOnGame();		//////////////////////////////////////////ERROR OCCUR///////////////////////////////////////////////
-		}
-		break;
-	}
-}
 
 VOID SendChatting()
 {
@@ -297,4 +298,6 @@ VOID VictoryOnGame()
 	GameStatus = GAMEOVER;
 
 	MessageBox(g_hWndMain, TEXT("You Winner!!"), TEXT("NOTICE"), MB_OK);
+	SetWindowText(g_hReadyButton, TEXT("Ready"));
+	ShowWindow(g_hReadyButton, SW_SHOW);
 }
