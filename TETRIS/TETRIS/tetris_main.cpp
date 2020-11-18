@@ -62,10 +62,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 	QuitRoom();
 
-	//Close Packet
-	itPacket = mPACKET.find(g_hSock);
-	delete itPacket->second;
-	mPACKET.erase(itPacket);
 
 	//Close Socket
 	if (g_hSock == INVALID_SOCKET)
@@ -537,12 +533,15 @@ VOID QuitRoom()
 
 int SendingBMP()
 {
-	int iFlag = 0;
-	int iTotSize = 0;
+	DWORD dwRead = 0;
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
 	PBYTE pBody = NULL;
 	WCHAR wFileName[MAX_PATH] = {0,};
 	HANDLE hFile = NULL;
-	DWORD dwRead = 0;
+	int iSendLen = 0;
+	int iSendTot = 0;
+	LPPACKET_HEADER pHeader = NULL;
 
 	wcscpy(wFileName, _T("capture.bmp"));
 
@@ -555,20 +554,31 @@ int SendingBMP()
 
 	iFileSize = g_tBmpInfoHeader.biSize + g_tBmpInfoHeader.biSizeImage;
 
-	pBody = new BYTE[iFileSize];
+	dwRespBufSize = sizeof(PACKET_HEADER) + iFileSize + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+	pHeader = (LPPACKET_HEADER)pRespBuf;
+	pBody = pRespBuf + sizeof(PACKET_HEADER);
+
+	pHeader->iFlag = WSABUFFER_IMAGE;
+	pHeader->iSize = sizeof(PACKET_HEADER) + iFileSize;
 
 	ReadFile(hFile, pBody, iFileSize, &dwRead, NULL);
 	CloseHandle(hFile);
 
-	iFlag = WSABUFFER_IMAGE;
-	iTotSize = sizeof(PACKET_HEADER) + iFileSize;
-
-	SendFunction(iFlag, iTotSize, pBody);
-
-	delete [] pBody;
-	pBody = NULL;
-
+	do 
+	{
+		iSendLen = send(g_hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if ( iSendLen == SOCKET_ERROR )
+		{
+			break;
+		}
+		iSendTot += iSendLen;
+	} while (pHeader->iSize != iSendTot);
+	
 	return TRUE;
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 
@@ -716,7 +726,7 @@ VOID AllReadyIsDone(HWND hWnd)
 }
 
 
-VOID SendFunction(int iFlag, int iTotSize, LPVOID pBodyBuf)
+inline VOID SendFunction(int iFlag, int iTotSize, LPVOID pBodyBuf)
 {
 	DWORD dwRespBufSize = 0;
 	PBYTE pRespBuf = NULL;
@@ -727,6 +737,7 @@ VOID SendFunction(int iFlag, int iTotSize, LPVOID pBodyBuf)
 
 	dwRespBufSize = iTotSize + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
 
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = pRespBuf + sizeof(PACKET_HEADER);
@@ -741,6 +752,7 @@ VOID SendFunction(int iFlag, int iTotSize, LPVOID pBodyBuf)
 	do 
 	{
 		iSendLen = send(g_hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+
 		if ( iSendLen == SOCKET_ERROR )
 		{
 			break;

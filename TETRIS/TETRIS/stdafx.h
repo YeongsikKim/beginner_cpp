@@ -151,6 +151,5 @@ extern int iFileSize;
 
 
 
-extern map<SOCKET, LPPACKET_BODY> mPACKET;
-extern map<SOCKET, LPPACKET_BODY>::iterator itPacket;
+
 

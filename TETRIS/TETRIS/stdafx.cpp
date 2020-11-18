@@ -56,6 +56,3 @@ HBITMAP		g_hBitmap;
 
 LPVOID lpBMPFile;
 int iFileSize;
-
-map<SOCKET, LPPACKET_BODY> mPACKET;
-map<SOCKET, LPPACKET_BODY>::iterator itPacket;

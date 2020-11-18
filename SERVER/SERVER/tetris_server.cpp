@@ -45,20 +45,26 @@ int _tmain()
 	//WinSock initialization
 	WSADATA	wsa	= {0,};
 
-	if (WSAStartup(MAKEWORD(2,2), &wsa) != 0)
+	if ( WSAStartup(MAKEWORD(2,2), &wsa) != 0 )
+	{
 		return -1;
+	}
 
 	//socket()
 	SOCKET listen_sock	= socket(AF_INET, SOCK_STREAM, 0);
 
-	if (listen_sock == INVALID_SOCKET) 
+	if ( listen_sock == INVALID_SOCKET )
+	{
 		err_quit("socket()");
+	}
 
 	//WSAAsyncSelect()
 	iRet = WSAAsyncSelect(listen_sock, hWnd, WM_SOCKET, FD_ACCEPT | FD_CLOSE);
 
-	if (iRet == SOCKET_ERROR)
+	if ( iRet == SOCKET_ERROR )
+	{
 		err_quit("WSAAsyncSelect()");
+	}
 
 	//bind()
 	SOCKADDR_IN serveraddr = {0,};
@@ -69,14 +75,18 @@ int _tmain()
 
 	iRet = bind(listen_sock, (const sockaddr*)&serveraddr, sizeof(serveraddr));
 
-	if (iRet == SOCKET_ERROR) 
+	if ( iRet == SOCKET_ERROR )
+	{
 		err_quit("bind()");
+	}
 
 	//listen()
 	iRet = listen(listen_sock, SOMAXCONN);
 
-	if (iRet == SOCKET_ERROR) 
+	if ( iRet == SOCKET_ERROR )
+	{
 		err_quit("listen()");
+	}
 
 	//Message Loop
 	MSG msg = {0,};
@@ -109,7 +119,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 		
 	case WM_DESTROY:
-		PostQuitMessage(0);
+		{
+			PostQuitMessage(0);
+		}		
 		break;
 	}
 	
@@ -134,13 +146,21 @@ VOID ProcessSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch ( WSAGETSELECTEVENT(lParam) )
 	{
 	case FD_ACCEPT:
-		SocketAcceptFunction(hWnd, wParam, lParam);
+		{
+			iRetval = SocketAcceptFunction(hWnd, wParam, lParam);
 
-		// 에러에 대한 처리(메시지나 시스템로그 같은거~)
+			if ( iRetval == ERR_TS_INVALID_SOCKET )
+			{
+				printf("Socket Error()\n");
+			}
+		}
 		break;
 
 	case FD_READ:
-		pClientSocketInfo = GetSocketInfo(wParam);
+		{
+			pClientSocketInfo = GetSocketInfo(wParam);
+		}
+		
 		//Receive Data
 		SocketReadFunction(hWnd, wParam, lParam);
 		break;

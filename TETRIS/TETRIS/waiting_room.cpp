@@ -211,6 +211,8 @@ BOOL CreateRoom(HWND hDlg)
 {
 	int iSendTot = 0;
 	int iSendSize = 0;
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
 
 	LPPACKET_BODY pPacket = NULL;
 	pPacket = new PACKET_BODY;
@@ -224,11 +226,9 @@ BOOL CreateRoom(HWND hDlg)
 		return FALSE;
 	}
 	
- 	DWORD dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
-
-	PBYTE pRespBuf = new BYTE[dwRespBufSize];
+ 	dwRespBufSize = strlen(pPacket->cData) + sizeof(PACKET_HEADER) + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
 	ZeroMemory(pRespBuf, dwRespBufSize);
-
 
 	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
 	PBYTE pBody = pRespBuf + sizeof(PACKET_HEADER);
@@ -243,10 +243,10 @@ BOOL CreateRoom(HWND hDlg)
 
 	do 
 	{
-		iSendSize = send(g_hSockRoom, (char*)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-		if (iSendSize == SOCKET_ERROR)
+		iSendSize = send(g_hSockRoom, (char*)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);\
+
+		if ( iSendSize == SOCKET_ERROR )
 		{
-			printf("send()\n");
 			break;
 		}
 		iSendTot += iSendSize;
@@ -312,13 +312,16 @@ VOID JoinInTheRoom()
 	do 
 	{
 		iSendLen = send(g_hSockRoom, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-		if (iSendLen == SOCKET_ERROR)
+
+		if ( iSendLen == SOCKET_ERROR )
 		{
-			printf("send()\n");
-			continue;
+			break;			
 		}
 		iSendTot += iSendLen;
 	} while (pHeader->iSize != iSendTot);
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 
@@ -354,26 +357,25 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	int iRecvLen	= 0;
 	int iBodySize	= 0;
 	int iMaxLen		= 0;
-
 	LPPACKET_BODY pPacket = NULL;
-	pPacket = new PACKET_BODY;
-	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-
-
 	LPPACKET_HEADER pHeader = NULL;
 	LPSTR pBody = NULL;
 
 	iMaxLen = BUFSIZE;
 
+	pPacket = new PACKET_BODY;
+	ZeroMemory(pPacket, sizeof(PACKET_BODY));
+
 	while(pPacket->iCurRecv < iMaxLen)
 	{
 		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
 
-		if (iRecvLen == SOCKET_ERROR)
+		if ( iRecvLen == SOCKET_ERROR )
 		{
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			if ( WSAGetLastError() == WSAEWOULDBLOCK )
 			{
-				continue;
+				Sleep(1000);
+				break;
 			}
 		}
 
@@ -431,7 +433,7 @@ VOID SendingRenew()
 
 		if ( iSendLen == SOCKET_ERROR )
 		{
-			err_quit("send()");
+			break;
 		}
 
 		iSendTot += iSendLen;

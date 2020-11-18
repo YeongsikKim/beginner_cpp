@@ -80,7 +80,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 VOID InitProc(HWND hDlg)
 {
-	int retval	= 0;
+	int iRetval	= 0;
 
 	g_hChatWindow		= GetDlgItem(hDlg, IDC_EDIT1);
 	g_hChatting			= GetDlgItem(hDlg, IDC_EDIT2);
@@ -97,12 +97,12 @@ VOID InitProc(HWND hDlg)
 	serveraddr.sin_addr.s_addr	= inet_addr("192.168.100.162");
 
 	//WSAAsyncSelect()
-	retval		= WSAAsyncSelect(g_hSock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
-	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
+	iRetval		= WSAAsyncSelect(g_hSock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
+	if (iRetval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 	//connect()
-	retval		= connect(g_hSock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
-	if (retval == INVALID_SOCKET)
+	iRetval		= connect(g_hSock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	if (iRetval == INVALID_SOCKET)
 	{
 		if (WSAGetLastError() != WSAEWOULDBLOCK)
 		{
@@ -110,9 +110,8 @@ VOID InitProc(HWND hDlg)
 		}
 	}
 
-	LPPACKET_BODY pPacket = new PACKET_BODY;
-	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-	mPACKET.insert(pair<SOCKET, LPPACKET_BODY>(g_hSock, pPacket));
+
+	
 }
 
 
@@ -127,18 +126,20 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	LPSTR pBody = NULL;
 	LPPACKET_HEADER pHeader = NULL;
 
-	LPPACKET_BODY pPacket = mPACKET[hSock];
+
+	LPPACKET_BODY pPacket = new PACKET_BODY;
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
 
 	while(pPacket->iCurRecv < iMaxLen)
 	{
 		iRecvLen = recv(hSock, (LPSTR)(pPacket->cData + pPacket->iCurRecv), (iMaxLen - pPacket->iCurRecv), NULL);
 
-		if (iRecvLen == SOCKET_ERROR)
+		if ( iRecvLen == SOCKET_ERROR )
 		{
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			if ( WSAGetLastError() == WSAEWOULDBLOCK )
 			{
-				continue;
+				Sleep(1000);
+				break;
 			}
 		}
 
@@ -179,18 +180,22 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	default:
 		break;
 	}
+
+	delete pPacket;
+	pPacket = NULL;
 }
 
 VOID SendChatting(char* cBuf)
 {
 	int iSendLen = 0;
 	int iSendTot = 0;
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + strlen(cBuf) + 1;
-	PBYTE pRespBuf = new BYTE[dwRespBufSize];
-//---------------
-
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
 	LPSTR pBody = NULL;
 
+	dwRespBufSize = sizeof(PACKET_HEADER) + strlen(cBuf) + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
 
 	LPPACKET_HEADER pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = (LPSTR)pRespBuf + sizeof(PACKET_HEADER);
@@ -205,7 +210,7 @@ VOID SendChatting(char* cBuf)
 	do 
 	{
 		iSendLen = send(g_hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
-		if (iSendLen == SOCKET_ERROR)
+		if ( iSendLen == SOCKET_ERROR )
 		{
 			break;
 		}
@@ -228,7 +233,7 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	DWORD dwWrite = 0;
 	wcscpy(wFileName, L"ReceiveBMP.bmp");
 	
-/*
+
 	hFile = CreateFile(wFileName, GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if ( hFile == INVALID_HANDLE_VALUE )
@@ -238,7 +243,7 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 
 	WriteFile(hFile, pBody, iBodySize, &dwWrite, NULL); 
 	CloseHandle(hFile);
-*/
+
 
 	hdc = GetDC(g_hWndMain);
 	g_hRecvMemDC = CreateCompatibleDC(NULL);
@@ -253,7 +258,7 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	SetDIBits(g_hRecvMemDC, g_hBitmap, 0, g_tBmpInfoHeader.biHeight, lpBit, lpBmi, DIB_RGB_COLORS);
 	SelectObject(g_hRecvMemDC, g_hBitmap);
 
-	InvalidateRect(g_hWndMain, NULL, FALSE);
+	InvalidateRect(g_hWndMain, NULL, TRUE);
 	UpdateWindow(g_hWndMain);
 
 	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, g_hRecvMemDC, 0, 0, SRCCOPY);

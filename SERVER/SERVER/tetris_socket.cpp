@@ -11,7 +11,7 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	int iBodySize = 0;
 	int iSendLen = 0;
 	int iSendTot = 0;
-	LPSTR pBody = NULL;
+	PBYTE pBody = NULL;
 	LPPACKET_BODY pPacket = NULL;
 	PACKET_HEADER hHeader = {0,};
 
@@ -27,13 +27,12 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		if (iRecvLen == SOCKET_ERROR)
 		{
 			DWORD gle = WSAGetLastError();
-			if (gle != WSAEWOULDBLOCK)
+			if (gle == WSAEWOULDBLOCK)
 			{
-				RemoveSocketInfo(hClientSock);
-				break;
+				Sleep(100);
+				continue;
 			}
-			Sleep(100);
-			continue;
+			printf("recv() Error gle = %d\n", gle);
 		}
 
 		pPacket->iCurRecv += ((iRecvLen > 0) ? iRecvLen : 0);
@@ -51,67 +50,83 @@ VOID SocketReadFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		}
 	}
 
-	pBody = (LPSTR)(pPacket->cData + sizeof(PACKET_HEADER));
+	pBody = (PBYTE)(pPacket->cData + sizeof(PACKET_HEADER));
 	iBodySize = hHeader.iSize - sizeof(PACKET_HEADER);
 
 	switch (hHeader.iFlag)
 	{
 	case WSABUFFER_ROOMNAME:
-		CreateRoomInfo(pBody);
-		pUserInfo = GetUserInfo(pClientSocketInfo);
-		pUserInfo->iRoomNumber = g_iTempRoomNumber;
+		{
+			CreateRoomInfo((LPSTR)pBody);
+			pUserInfo = GetUserInfo(pClientSocketInfo);
+			pUserInfo->iRoomNumber = g_iTempRoomNumber;
 
-		RenewWaitingRoom();
-		return;
+			RenewWaitingRoom();
+		}
+		break;
 
 	case WSABUFFER_CHATTING:
-		SendingChatting(pClientSocketInfo, pBody);
+		{
+			SendingChatting(pClientSocketInfo, (LPSTR)pBody);
+		}		
 		break;
 
 	case WSABUFFER_IMAGE:
-		SendingImage(hClientSock, pBody, iBodySize);
+		{
+			SendingImage(hClientSock, pBody, iBodySize);
+		}		
 		break;
 
 	case WSABUFFER_RENEW:
-		RenewWaitingRoom();
-		return;
+		{
+			RenewWaitingRoom();
+		}		
+		break;
 
 	case WSABUFFER_JOIN:
-		JoinInTheRoom(pClientSocketInfo, pBody);
-		return;
+		{
+			JoinInTheRoom(pClientSocketInfo, (LPSTR)pBody);
+		}
+		break;
 
 	case WSABUFFER_QUITROOM:
-		pUserInfo = GetUserInfo(pClientSocketInfo);
-		iterRoom = mROOM.find(pUserInfo->iRoomNumber);
-		if (iterRoom != mROOM.end())
 		{
-			iterRoom->second->iPeopleIN--;
-			if (iterRoom->second->iPeopleIN <= 0)
+			pUserInfo = GetUserInfo(pClientSocketInfo);
+			iterRoom = mROOM.find(pUserInfo->iRoomNumber);
+			if (iterRoom != mROOM.end())
 			{
-				delete iterRoom->second;
-				mROOM.erase(iterRoom);
+				iterRoom->second->iPeopleIN--;
+				if (iterRoom->second->iPeopleIN <= 0)
+				{
+					delete iterRoom->second;
+					mROOM.erase(iterRoom);
+				}
 			}
-		}
-		RemoveUserInfo(hClientSock);
+			RemoveUserInfo(hClientSock);
 
-		printf("[Server] Successfully Clean Room\n");
-		return;
+			printf("[Server] Successfully Clean Room\n");
+		}
+		break;
 
 	case WSABUFFER_READY:
-		ReadyStatus(hClientSock, pClientSocketInfo);
+		{
+			ReadyStatus(hClientSock, pClientSocketInfo);
+		}
 		break;
 
 	case WSABUFFER_NOTREADY:
-		NotReadyStatus(pClientSocketInfo);
+		{
+			NotReadyStatus(pClientSocketInfo);
+		}
 		break;
 
 	case WSABUFFER_END:
-		GameIsOver(pClientSocketInfo);
-		break;
-
-	default:
+		{
+			GameIsOver(pClientSocketInfo);
+		}
 		break;
 	}
+
 }
 
 
@@ -277,20 +292,32 @@ VOID SendingChatting(SOCKETINFO *pSocketInfo, LPSTR pBuf)
 	}
 }
 
-VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
+VOID SendingImage(SOCKET hSock, PBYTE pBuf, int iBufSize)
 {
 	SOCKET hOtherSock = 0;
 	LPUSERINFO pUserInfo = NULL;
 	LPSOCKETINFO pSocketInfo = NULL;
-	int iTotSize = 0;
-	int iFlag = 0;
+	int iSendLen = 0;
+	int iSendTot = 0;
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
+	LPSTR pBody = NULL;
+	LPPACKET_HEADER pHeader = NULL;
 	
 
 	pSocketInfo = GetSocketInfo(hSock);
 	pUserInfo = GetUserInfo(pSocketInfo);
 
-	iTotSize = sizeof(PACKET_HEADER) + iBufSize;
-	iFlag = WSABUFFER_IMAGE;
+	dwRespBufSize = sizeof(PACKET_HEADER) + iBufSize + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
+	pHeader = (LPPACKET_HEADER) pRespBuf;
+	pBody = (LPSTR)pRespBuf + sizeof(PACKET_HEADER);
+
+	pHeader->iFlag = WSABUFFER_IMAGE;
+	pHeader->iSize = sizeof(PACKET_HEADER) + iBufSize;
+
+	memcpy(pBody, pBuf, iBufSize);
 
 	//Sending image only who has same Room Number
 	for (iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++)
@@ -311,9 +338,20 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 	{
 		return;
 	}
-	SendFunction(hOtherSock, iFlag, iTotSize, pBuf);
+	
+	do 
+	{
+		iSendLen = send(hOtherSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		if ( iSendLen == SOCKET_ERROR )
+		{
+			break;
+		}
+		printf("Image Send(%lu), ToTal(%d), Cur(%d), SendLen(%d)(%d)\nSock(%X)\n", (iterUser->second->addr), pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen, hSock);
+		iSendTot += iSendLen;
+	} while ( pHeader->iSize != iSendTot );
 
-	//Sending Image to me Using DEBUG
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 
@@ -327,10 +365,12 @@ VOID RenewWaitingRoom()
 	int iSizeOfRoom = 0;
 	int iSendByte = 0;
 	int iSendTot = 0;
+	DWORD dwRespBufSize = 0;
 
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + (sizeof(ROOMINFO) * mROOM.size()) + 1;
-
+	dwRespBufSize = sizeof(PACKET_HEADER) + (sizeof(ROOMINFO) * mROOM.size()) + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
+
 	pHeader = (LPPACKET_HEADER) pRespBuf;
 
 	pHeader->iFlag = WSABUFFER_RENEW;
@@ -379,6 +419,7 @@ VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody)
 
 	dwRespBufSize = sizeof(PACKET_HEADER) +	1;
 	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
 	
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 
@@ -440,6 +481,7 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 
 	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
 	
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 
@@ -557,8 +599,11 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 	iterUser->second->iStatus = NOTREADY;
 
 	hOtherSock = GetSock(iterUser->second);
+
 	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
+
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 
 	pHeader->iFlag = WSABUFFER_END;
@@ -590,6 +635,7 @@ VOID SendFunction(SOCKET hSock, int iFlag, int iTotSize, LPVOID pBodyBuf)
 	
 	dwRespBufSize = iTotSize + 1;
 	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
 
 	pHeader = (LPPACKET_HEADER)pRespBuf;
 	pBody = pRespBuf + sizeof(PACKET_HEADER);
@@ -604,6 +650,7 @@ VOID SendFunction(SOCKET hSock, int iFlag, int iTotSize, LPVOID pBodyBuf)
 	do 
 	{
 		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+
 		if ( iSendLen == SOCKET_ERROR )
 		{
 			break;
