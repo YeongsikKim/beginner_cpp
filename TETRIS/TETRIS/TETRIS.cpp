@@ -64,15 +64,15 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 
 	//Close Packet
-	itPacket = mPACKET.find(hSock);
+	itPacket = mPACKET.find(g_hSock);
 	delete itPacket->second;
 	mPACKET.erase(itPacket);
 	//Close Socket
-	if (hSock == INVALID_SOCKET)
+	if (g_hSock == INVALID_SOCKET)
 	{
 		printf("It is Invalid Socket\n");
 	}
-	closesocket(hSock);
+	closesocket(g_hSock);
 	WSACleanup();
 	
 	return (int) iMessage.wParam;
@@ -163,10 +163,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_CREATE:
-		hWndMain	= hWnd;
+		g_hWndMain	= hWnd;
 		SetRect(&crt, 0, 0, (BW+12)*TS + (BW+2)*TS + 20, (BH+2)*TS);
 		AdjustWindowRect(&crt, WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, TRUE);
-		SetWindowPos(hWndMain, NULL, 0, 0, crt.right - crt.left, crt.bottom - crt.top, SWP_NOMOVE | SWP_NOZORDER);
+		SetWindowPos(g_hWndMain, NULL, 0, 0, crt.right - crt.left, crt.bottom - crt.top, SWP_NOMOVE | SWP_NOZORDER);
 
 		//Create Ready Button
 		CreateReadyButton(hWnd);
@@ -175,7 +175,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		srand(GetTickCount());
 		for (i = 0; i<11; i++)
 		{
-			hBit[i]	= LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BITMAP1+i));
+			g_tBit[i]	= LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BITMAP1+i));
 		}
 		return 0;
 
@@ -197,13 +197,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					board[x][y] = (y==0 || y==BH+1 || x==0 || x==BW+1)?WALL:EMPTY;
 				}
 			}
-			score		= 0;
-			bricknum	= 0;
+			g_iScore		= 0;
+			g_iBrickNum	= 0;
 			GameStatus	= RUNNING;
-			nbrick		= random(sizeof(Shape)/sizeof(Shape[0]));
+			g_iNBrick		= random(sizeof(Shape)/sizeof(Shape[0]));
 			MakeNewBrick();
-			iInterval	= TIMER_TYPE_DOWN_DELAY;
-			SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
+			g_iInterval	= TIMER_TYPE_DOWN_DELAY;
+			SetTimer(hWnd, TIMER_TYPE_DOWN, g_iInterval, NULL);
 			SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 			break;
 
@@ -217,7 +217,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			else if (GameStatus == PAUSE)
 			{
 				GameStatus	= RUNNING;
-				SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
+				SetTimer(hWnd, TIMER_TYPE_DOWN, g_iInterval, NULL);
 				SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 			}
 			break;
@@ -257,31 +257,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_KEYDOWN:
-		if (GameStatus != RUNNING || brick == -1)
+		if (GameStatus != RUNNING || g_iBrick == -1)
 		{
 			return 0;
 		}
 		switch (wParam)
 		{
 		case VK_LEFT:
-			if (GetAround(nx - 1, ny, brick, rot) == EMPTY)
+			if (GetAround(g_iWidth - 1, g_iHeigth, g_iBrick, g_iRot) == EMPTY)
 			{
-				nx--;
+				g_iWidth--;
 				InvalidateRect(hWnd, NULL, FALSE);
 			}
 			break;
 		case VK_RIGHT:
-			if (GetAround(nx + 1, ny, brick, rot) == EMPTY)
+			if (GetAround(g_iWidth + 1, g_iHeigth, g_iBrick, g_iRot) == EMPTY)
 			{
-				nx++;
+				g_iWidth++;
 				InvalidateRect(hWnd, NULL, FALSE);			
 			}
 			break;
 		case VK_UP:
-			trot	= (rot == 3? 0 : rot + 1);
-			if (GetAround(nx, ny, brick, trot) == EMPTY)
+			trot	= (g_iRot == 3? 0 : g_iRot + 1);
+			if (GetAround(g_iWidth, g_iHeigth, g_iBrick, trot) == EMPTY)
 			{
-				rot	= trot;
+				g_iRot	= trot;
 				InvalidateRect(hWnd, NULL, FALSE);				
 			}
 			break;
@@ -308,12 +308,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-		KillTimer(hWndMain, TIMER_TYPE_DOWN);
-		KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
+		KillTimer(g_hWndMain, TIMER_TYPE_DOWN);
+		KillTimer(g_hWndMain, TIMER_TYPE_CAPTURE);
 
 		for ( i = 0; i < 11; i++ )
 		{
-			DeleteObject(hBit[i]);
+			DeleteObject(g_tBit[i]);
 		}
 		
 		PostQuitMessage(0);
@@ -353,11 +353,11 @@ VOID DrawScreen(HDC hdc)
 	}
 
 	//draw the moving brick
-	if (GameStatus != GAMEOVER && brick != -1)
+	if (GameStatus != GAMEOVER && g_iBrick != -1)
 	{
 		for (i = 0; i<4; i++)
 		{
-			PrintTile(hdc, nx+Shape[brick][rot][i].x, ny+Shape[brick][rot][i].y, brick+1);
+			PrintTile(hdc, g_iWidth+Shape[g_iBrick][g_iRot][i].x, g_iHeigth+Shape[g_iBrick][g_iRot][i].y, g_iBrick+1);
 		}
 	}
 	
@@ -380,15 +380,15 @@ VOID DrawScreen(HDC hdc)
 	{
 		for (i = 0; i<4; i++)
 		{
-			PrintTile(hdc, BW+7+Shape[nbrick][0][i].x, BH-2+Shape[nbrick][0][i].y, nbrick+1);
+			PrintTile(hdc, BW+7+Shape[g_iNBrick][0][i].x, BH-2+Shape[g_iNBrick][0][i].y, g_iNBrick+1);
 		}
 	}
 
 	lstrcpy(str, TEXT("Tetris Ver 1.2"));
 	TextOut(hdc, (BW+4)*TS, 30, str, lstrlen(str));
-	wsprintf(str, TEXT("Score : %d   "), score);
+	wsprintf(str, TEXT("Score : %d   "), g_iScore);
 	TextOut(hdc, (BW+4)*TS, 60, str, lstrlen(str));
-	wsprintf(str, TEXT("Bricks: %d   "), bricknum);
+	wsprintf(str, TEXT("Bricks: %d   "), g_iBrickNum);
 	TextOut(hdc, (BW+4)*TS, 80, str, lstrlen(str));
 
 	SettingBMPHeader();
@@ -396,11 +396,11 @@ VOID DrawScreen(HDC hdc)
 
 VOID MakeNewBrick()
 {
-	brick		= nbrick;
-	nbrick		= random(sizeof(Shape)/sizeof(Shape[0]));
-	nx			= BW/2;
-	ny			= 3;
-	rot			= 0;
+	g_iBrick		= g_iNBrick;
+	g_iNBrick		= random(sizeof(Shape)/sizeof(Shape[0]));
+	g_iWidth			= BW/2;
+	g_iHeigth			= 3;
+	g_iRot			= 0;
 	//Game over Send
 	DWORD dwRespBufSize = 0;
 	PBYTE pRespBuf = NULL;
@@ -409,17 +409,17 @@ VOID MakeNewBrick()
 	int iSendTot = 0;
 
 
-	bricknum++;
+	g_iBrickNum++;
 
-	InvalidateRect(hWndMain, NULL, FALSE);
+	InvalidateRect(g_hWndMain, NULL, FALSE);
 
-	if (GetAround(nx, ny, brick, rot) != EMPTY)
+	if (GetAround(g_iWidth, g_iHeigth, g_iBrick, g_iRot) != EMPTY)
 	{
-		KillTimer(hWndMain, TIMER_TYPE_DOWN);
-		KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
+		KillTimer(g_hWndMain, TIMER_TYPE_DOWN);
+		KillTimer(g_hWndMain, TIMER_TYPE_CAPTURE);
 		GameStatus = GAMEOVER;
 
-		MessageBox(hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
+		MessageBox(g_hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
 	}
 
 	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
@@ -432,7 +432,7 @@ VOID MakeNewBrick()
 
 	do 
 	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(g_hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
 			err_quit("End send()");
@@ -455,15 +455,15 @@ int GetAround(int x, int y, int b, int r)
 
 BOOL MoveDown()
 {
-	if (GetAround(nx, ny+1, brick, rot) != EMPTY)
+	if (GetAround(g_iWidth, g_iHeigth+1, g_iBrick, g_iRot) != EMPTY)
 	{
 		TestFull();
 		return TRUE;
 	}
-	ny++;
+	g_iHeigth++;
 
-	InvalidateRect(hWndMain, NULL, FALSE);
-	UpdateWindow(hWndMain);
+	InvalidateRect(g_hWndMain, NULL, FALSE);
+	UpdateWindow(g_hWndMain);
 	return FALSE;
 }
 
@@ -478,10 +478,10 @@ VOID TestFull()
 
 	for (i = 0; i<4; i++)
 	{
-		board[nx+Shape[brick][rot][i].x][ny+Shape[brick][rot][i].y]		= brick + 1;
+		board[g_iWidth+Shape[g_iBrick][g_iRot][i].x][g_iHeigth+Shape[g_iBrick][g_iRot][i].y]		= g_iBrick + 1;
 	}
 
-	brick = -1;
+	g_iBrick = -1;
 
 	for (y = 1; y<BH+1; y++)
 	{
@@ -503,16 +503,16 @@ VOID TestFull()
 					board[x][ty]	= board[x][ty-1];
 				}
 			}
-			InvalidateRect(hWndMain, NULL, FALSE);
-			UpdateWindow(hWndMain);
+			InvalidateRect(g_hWndMain, NULL, FALSE);
+			UpdateWindow(g_hWndMain);
 			Sleep(150);
 		}
 	}
-	score += arScoreInc[count];
-	if (bricknum % 10 == 0 && iInterval > 200)
+	g_iScore += arScoreInc[count];
+	if (g_iBrickNum % 10 == 0 && g_iInterval > 200)
 	{
-		iInterval -= 50;
-		SetTimer (hWndMain, TIMER_TYPE_DOWN, iInterval, NULL);
+		g_iInterval -= 50;
+		SetTimer (g_hWndMain, TIMER_TYPE_DOWN, g_iInterval, NULL);
 	}
 }
 
@@ -541,7 +541,7 @@ VOID DrawBitmap(HDC hdc, int x, int y, HBITMAP hBit)
 
 VOID PrintTile(HDC hdc, int x, int y, int c)
 {
-	DrawBitmap(hdc, x*TS, y*TS, hBit[c]);
+	DrawBitmap(hdc, x*TS, y*TS, g_tBit[c]);
 	return;
 }
 
@@ -561,7 +561,7 @@ VOID QuitRoom()
 
 	do
 	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(g_hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
 			DWORD gle = WSAGetLastError();
@@ -583,12 +583,12 @@ VOID SendingBMP()
 	streamSending.open("c:\\beginnerC\\capture.bmp", ios::binary);
 	streamSending.seekg(0, std::ios::end);
 
-	iFileSize = streamSending.tellg();
+	g_iFileSize = streamSending.tellg();
 
 	streamSending.seekg(0, std::ios::beg);
 
 	
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + iFileSize + 1;
+	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + g_iFileSize + 1;
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
 	LPSTR pBody = NULL;
 
@@ -597,15 +597,15 @@ VOID SendingBMP()
 
 	//Setting Header
 	pHeader->iFlag = WSABUFFER_IMAGE;
-	pHeader->iSize = sizeof(PACKET_HEADER) + iFileSize;
+	pHeader->iSize = sizeof(PACKET_HEADER) + g_iFileSize;
 
 	//Setting Body
-	streamSending.read((LPSTR)pBody, iFileSize);
+	streamSending.read((LPSTR)pBody, g_iFileSize);
 	streamSending.close();
 
 	do 
 	{
-		iSendLen = send(hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(g_hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
 			break;
@@ -630,63 +630,63 @@ VOID SettingBMPHeader()
 		return;
 	}
 
-	hTempDC = GetDC(hWndMain);
-	hMemDC = CreateCompatibleDC(hTempDC);
-	hBitmap = CreateCompatibleBitmap(hTempDC, (BW+2)*TS, (BH+2)*TS);
+	g_hTempDC = GetDC(g_hWndMain);
+	g_hMemDC = CreateCompatibleDC(g_hTempDC);
+	g_hBitmap = CreateCompatibleBitmap(g_hTempDC, (BW+2)*TS, (BH+2)*TS);
 
 
-	old_obj = SelectObject(hMemDC, hBitmap);
+	g_old_obj = SelectObject(g_hMemDC, g_hBitmap);
 
-	bRet = BitBlt(hMemDC, 0, 0, (BW+2)*TS, (BH+2)*TS, hTempDC, 0, 0, SRCCOPY);
+	bRet = BitBlt(g_hMemDC, 0, 0, (BW+2)*TS, (BH+2)*TS, g_hTempDC, 0, 0, SRCCOPY);
 
-	GetObject(hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
+	GetObject(g_hBitmap, sizeof(bitmap), (LPSTR)&bitmap);
 
 	// Bitmap Header Info Setting
-	bi.biSize = sizeof(BITMAPINFOHEADER);
-	bi.biWidth = bitmap.bmWidth;
-	bi.biHeight = bitmap.bmHeight;
-	bi.biPlanes = 1;
-	bi.biBitCount = BIT_COUNT;
-	bi.biCompression = BI_RGB;
-	bi.biSizeImage = 0;
-	bi.biXPelsPerMeter = 0;
-	bi.biYPelsPerMeter = 0;
-	bi.biClrUsed = 0;
-	bi.biClrImportant = 0;
+	g_tBitmap_InfoHeader.biSize = sizeof(BITMAPINFOHEADER);
+	g_tBitmap_InfoHeader.biWidth = bitmap.bmWidth;
+	g_tBitmap_InfoHeader.biHeight = bitmap.bmHeight;
+	g_tBitmap_InfoHeader.biPlanes = 1;
+	g_tBitmap_InfoHeader.biBitCount = BIT_COUNT;
+	g_tBitmap_InfoHeader.biCompression = BI_RGB;
+	g_tBitmap_InfoHeader.biSizeImage = 0;
+	g_tBitmap_InfoHeader.biXPelsPerMeter = 0;
+	g_tBitmap_InfoHeader.biYPelsPerMeter = 0;
+	g_tBitmap_InfoHeader.biClrUsed = 0;
+	g_tBitmap_InfoHeader.biClrImportant = 0;
 	// Color Size
-	iPalSize = (bi.biBitCount == 24 ? 0 : 1 << bi.biBitCount) * sizeof(RGBQUAD);
+	iPalSize = (g_tBitmap_InfoHeader.biBitCount == 24 ? 0 : 1 << g_tBitmap_InfoHeader.biBitCount) * sizeof(RGBQUAD);
 
 
-	fh.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + iPalSize;
-	fh.bfReserved1 = 0;
-	fh.bfReserved2 = 0;
-	fh.bfSize = iSize + sizeof(BITMAPFILEHEADER);
-	fh.bfType = 0x4d42;
+	g_tBitmap_FileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + iPalSize;
+	g_tBitmap_FileHeader.bfReserved1 = 0;
+	g_tBitmap_FileHeader.bfReserved2 = 0;
+	g_tBitmap_FileHeader.bfSize = g_iSize + sizeof(BITMAPFILEHEADER);
+	g_tBitmap_FileHeader.bfType = 0x4d42;
 
-	stream.write((LPSTR)&fh, sizeof(BITMAPFILEHEADER));
+	stream.write((LPSTR)&g_tBitmap_FileHeader, sizeof(BITMAPFILEHEADER));
 
 	hbitDC = GetDC(NULL);
 
-	lpHeader = new BITMAPINFO;
-	ZeroMemory(lpHeader, sizeof(BITMAPINFO));
-	lpHeader->bmiHeader = bi;
-	GetDIBits(hbitDC, hBitmap, 0, bitmap.bmHeight, NULL, lpHeader, DIB_RGB_COLORS);
-	bi = lpHeader->bmiHeader;
-	if (bi.biSizeImage == 0)
+	g_pBitmap_Info = new BITMAPINFO;
+	ZeroMemory(g_pBitmap_Info, sizeof(BITMAPINFO));
+	g_pBitmap_Info->bmiHeader = g_tBitmap_InfoHeader;
+	GetDIBits(hbitDC, g_hBitmap, 0, bitmap.bmHeight, NULL, g_pBitmap_Info, DIB_RGB_COLORS);
+	g_tBitmap_InfoHeader = g_pBitmap_Info->bmiHeader;
+	if (g_tBitmap_InfoHeader.biSizeImage == 0)
 	{
 		//Forced Setting File Image Size
-		bi.biSizeImage = ((bitmap.bmWidth * bi.biBitCount + 31) & ~31) / 8 * bitmap.bmHeight;
+		g_tBitmap_InfoHeader.biSizeImage = ((bitmap.bmWidth * g_tBitmap_InfoHeader.biBitCount + 31) & ~31) / 8 * bitmap.bmHeight;
 	}
-	iSize = bi.biSize + iPalSize + bi.biSizeImage;
-	lpBody = malloc(lpHeader->bmiHeader.biSizeImage);
-	GetDIBits(hbitDC, hBitmap, 0, lpHeader->bmiHeader.biHeight, lpBody, lpHeader, DIB_RGB_COLORS);
+	g_iSize = g_tBitmap_InfoHeader.biSize + iPalSize + g_tBitmap_InfoHeader.biSizeImage;
+	g_pBody = malloc(g_pBitmap_Info->bmiHeader.biSizeImage);
+	GetDIBits(hbitDC, g_hBitmap, 0, g_pBitmap_Info->bmiHeader.biHeight, g_pBody, g_pBitmap_Info, DIB_RGB_COLORS);
 
-	stream.write((LPSTR)&lpHeader->bmiHeader, sizeof(BITMAPINFOHEADER));
-	stream.write((LPSTR)lpBody, iSize);
+	stream.write((LPSTR)&g_pBitmap_Info->bmiHeader, sizeof(BITMAPINFOHEADER));
+	stream.write((LPSTR)g_pBody, g_iSize);
 	stream.close();
 
-	free(lpBody);
-	lpBody = NULL;
+	free(g_pBody);
+	g_pBody = NULL;
 
 //	DeleteDC(hMemDC);
 //	DeleteObject(hBitmap);
@@ -730,7 +730,7 @@ VOID ClickedReadyButton()
 
 	do 
 	{
-		iSendLen = send(hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(g_hSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if ( iSendLen == SOCKET_ERROR )
 		{
 			err_quit("Ready Send()");

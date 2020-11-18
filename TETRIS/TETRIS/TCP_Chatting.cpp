@@ -15,21 +15,21 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_INITDIALOG:
 		InitProc(hDlg);
-		SetParent(hDlg, hWndMain);
+		SetParent(hDlg, g_hWndMain);
 		return TRUE;
 	case WM_COMMAND:
 		switch(LOWORD(wParam))
 		{
 		case IDOK:
-			EnableWindow(hOKbutton, FALSE);
-			GetDlgItemTextA(hDlg, IDC_EDIT2, cBuf, CHATSIZE+1);
+			EnableWindow(g_hOkbutton, FALSE);
+			GetDlgItemTextA(hDlg, IDC_EDIT2, g_cBuf, CHATSIZE+1);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			SendChatting();
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			SetFocus(hEdit2);
-			SendMessage(hEdit2, EM_SETSEL, 0, -1);
-			SendMessage(hEdit2, EM_REPLACESEL, NULL, (LPARAM)"");
-			EnableWindow(hOKbutton, TRUE);
+			SetFocus(g_hChatInputEdit);
+			SendMessage(g_hChatInputEdit, EM_SETSEL, 0, -1);
+			SendMessage(g_hChatInputEdit, EM_REPLACESEL, NULL, (LPARAM)"");
+			EnableWindow(g_hOkbutton, TRUE);
 
 			return TRUE;
 		case IDCANCEL:
@@ -56,9 +56,8 @@ VOID DisplayText(char *fmt, ...)
 	vsprintf(cbuf, fmt, arg);
 
 
-	int nLength		=  GetWindowTextLength(hEdit1);
-	//SendMessageA(hEdit1, EM_SETSEL, nLength, nLength);
-	SendMessageA(hEdit1, EM_REPLACESEL, FALSE, (LPARAM)cbuf);
+	int nLength		=  GetWindowTextLength(g_hChatViewEdit);
+	SendMessageA(g_hChatViewEdit, EM_REPLACESEL, FALSE, (LPARAM)cbuf);
 
 	va_end(arg);
 }
@@ -131,7 +130,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_CLOSE:
-		closesocket(hSock);
+		closesocket(g_hSock);
 		break;
 
 	case FD_READ:
@@ -141,7 +140,7 @@ VOID ProcessSocketMessage(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case FD_CONNECT:
 
 		//WSAAsyncSelect()
-		iRetval		= WSAAsyncSelect(hSock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);		
+		iRetval		= WSAAsyncSelect(g_hSock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);		
 		if (iRetval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 		break;
@@ -154,14 +153,14 @@ VOID InitProc(HWND hDlg)
 {
 	int retval	= 0;
 
-	hEdit1		= GetDlgItem(hDlg, IDC_EDIT1);
-	hEdit2		= GetDlgItem(hDlg, IDC_EDIT2);
-	hOKbutton	= GetDlgItem(hDlg, IDOK);
-	SendMessage(hEdit2, EM_SETLIMITTEXT, BUFSIZE, 0);
+	g_hChatViewEdit		= GetDlgItem(hDlg, IDC_EDIT1);
+	g_hChatInputEdit		= GetDlgItem(hDlg, IDC_EDIT2);
+	g_hOkbutton	= GetDlgItem(hDlg, IDOK);
+	SendMessage(g_hChatInputEdit, EM_SETLIMITTEXT, BUFSIZE, 0);
 
 	//Socket()
-	hSock		= socket(AF_INET, SOCK_STREAM, 0);
-	if (hSock == INVALID_SOCKET) err_quit("socket()");
+	g_hSock		= socket(AF_INET, SOCK_STREAM, 0);
+	if (g_hSock == INVALID_SOCKET) err_quit("socket()");
 
 	SOCKADDR_IN serveraddr = {0,};
 	serveraddr.sin_family		= AF_INET;
@@ -169,11 +168,11 @@ VOID InitProc(HWND hDlg)
 	serveraddr.sin_addr.s_addr	= inet_addr("192.168.100.162");
 
 	//WSAAsyncSelect()
-	retval		= WSAAsyncSelect(hSock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
+	retval		= WSAAsyncSelect(g_hSock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
 	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 	//connect()
-	retval		= connect(hSock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	retval		= connect(g_hSock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 	if (retval == INVALID_SOCKET)
 	{
 		if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -184,7 +183,7 @@ VOID InitProc(HWND hDlg)
 
 	LPPACKET_BODY pPacket = new PACKET_BODY;
 	ZeroMemory(pPacket, sizeof(PACKET_BODY));
-	mPACKET.insert(pair<SOCKET, LPPACKET_BODY>(hSock, pPacket));
+	mPACKET.insert(pair<SOCKET, LPPACKET_BODY>(g_hSock, pPacket));
 }
 
 
@@ -229,7 +228,7 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	{
 	case WSABUFFER_CHATTING:
 		DisplayText("[TCP Client DATA] %s\r\n", pBody);
-		EnableWindow(hOKbutton, true);
+		EnableWindow(g_hOkbutton, true);
 		break;
 
 	case WSABUFFER_IMAGE:
@@ -237,7 +236,7 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 		break;
 		
 	case WSABUFFER_START:
-		AllReadyIsDone(hWndMain);
+		AllReadyIsDone(g_hWndMain);
 		break;
 
 	case WSABUFFER_END:
@@ -253,7 +252,7 @@ VOID SendChatting()
 {
 	int iSendLen = 0;
 	int iSendTot = 0;
-	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + strlen(cBuf) + 1;
+	DWORD dwRespBufSize = sizeof(PACKET_HEADER) + strlen(g_cBuf) + 1;
 	PBYTE pRespBuf = new BYTE[dwRespBufSize];
 	LPSTR pBody = NULL;
 
@@ -263,14 +262,14 @@ VOID SendChatting()
 	
 	//Setting Header
 	pHeader->iFlag = WSABUFFER_CHATTING;
-	pHeader->iSize = sizeof(PACKET_HEADER) + strlen(cBuf);
+	pHeader->iSize = sizeof(PACKET_HEADER) + strlen(g_cBuf);
 
 	//Setting Body
-	strcpy(pBody, cBuf);
+	strcpy(pBody, g_cBuf);
 
 	do 
 	{
-		iSendLen = send(hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(g_hSock, (LPSTR)(pHeader + iSendTot), pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
 			break;
@@ -310,9 +309,9 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	hFile = CreateFileW(wFileName, GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	WriteFile(hFile, pBody, iBodySize, &dwWrite, NULL); 
 #if 1
-	hdc = GetDC(hWndMain);
-	hRecvMemDC = CreateCompatibleDC(NULL);
-	hBitmap = CreateCompatibleBitmap(hdc, (BW+2)*TS, (BH+2)*TS);
+	hdc = GetDC(g_hWndMain);
+	g_hRecvMemDC = CreateCompatibleDC(NULL);
+	g_hBitmap = CreateCompatibleBitmap(hdc, (BW+2)*TS, (BH+2)*TS);
 
 	lpBit = pBody + sizeof(BITMAPINFO) + sizeof(BITMAPFILEHEADER);
 	//lpBmi = (LPBITMAPINFO)pBody + sizeof(BITMAPFILEHEADER) - 1;
@@ -322,16 +321,16 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	
 	
 
-	SetDIBits(hRecvMemDC, hBitmap, 0, bi.biHeight, lpBit, lpBmi, DIB_RGB_COLORS);
-	SelectObject(hRecvMemDC, hBitmap);
+	SetDIBits(g_hRecvMemDC, g_hBitmap, 0, g_tBitmap_InfoHeader.biHeight, lpBit, lpBmi, DIB_RGB_COLORS);
+	SelectObject(g_hRecvMemDC, g_hBitmap);
 
-	InvalidateRect(hWndMain, NULL, FALSE);
-	UpdateWindow(hWndMain);
+	InvalidateRect(g_hWndMain, NULL, FALSE);
+	UpdateWindow(g_hWndMain);
 
-	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, hRecvMemDC, 0, 0, SRCCOPY);
+	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, g_hRecvMemDC, 0, 0, SRCCOPY);
 
-	DeleteDC(hRecvMemDC);
-	DeleteObject(hBitmap);
+	DeleteDC(g_hRecvMemDC);
+	DeleteObject(g_hBitmap);
 #endif
 
 #if 0
@@ -376,13 +375,13 @@ VOID AllReadyIsDone(HWND hWnd)
 			board[x][y] = (y==0 || y==BH+1 || x==0 || x==BW+1)?WALL:EMPTY;
 		}
 	}
-	score		= 0;
-	bricknum	= 0;
+	g_iScore		= 0;
+	g_iBrickNum	= 0;
 	GameStatus	= RUNNING;
-	nbrick		= random(SIZEOFSHAPE/SIZEOFBLCOK);
+	g_iNBrick		= random(SIZEOFSHAPE/SIZEOFBLCOK);
 	MakeNewBrick();
-	iInterval	= TIMER_TYPE_DOWN_DELAY;
-	SetTimer(hWnd, TIMER_TYPE_DOWN, iInterval, NULL);
+	g_iInterval	= TIMER_TYPE_DOWN_DELAY;
+	SetTimer(hWnd, TIMER_TYPE_DOWN, g_iInterval, NULL);
 	SetTimer(hWnd, TIMER_TYPE_CAPTURE, TIMER_TYPE_CAPTURE_DELAY, NULL);
 
 	ShowWindow(g_hReadyButton, SW_HIDE);
@@ -390,9 +389,9 @@ VOID AllReadyIsDone(HWND hWnd)
 
 VOID VictoryOnGame()
 {
-	KillTimer(hWndMain, TIMER_TYPE_DOWN);
-	KillTimer(hWndMain, TIMER_TYPE_CAPTURE);
+	KillTimer(g_hWndMain, TIMER_TYPE_DOWN);
+	KillTimer(g_hWndMain, TIMER_TYPE_CAPTURE);
 	GameStatus = GAMEOVER;
 
-	MessageBox(hWndMain, TEXT("You Winner!!"), TEXT("NOTICE"), MB_OK);
+	MessageBox(g_hWndMain, TEXT("You Winner!!"), TEXT("NOTICE"), MB_OK);
 }

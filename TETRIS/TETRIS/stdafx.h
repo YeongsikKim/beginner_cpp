@@ -102,50 +102,50 @@ extern BOOL bRecvDelay;
 
 //TETRIS Global Variable
 extern HINSTANCE	g_hInst;								
-extern HWND			hWndMain;
+extern HWND			g_hWndMain;
 extern int			board[BW+2][BH+2];
-extern int			nx, ny;
-extern int			brick, rot;
-extern int			nbrick;
-extern int			score;
-extern int			bricknum;
-extern int			iInterval;
-extern HBITMAP		hBit[11];
-extern HWND			hList; 
-extern HWND			hRoomCreate; 
-extern HWND			hOKbutton2;
-extern HWND			hEdit;
+extern int			g_iWidth, g_iHeigth;
+extern int			g_iBrick, g_iRot;
+extern int			g_iNBrick;
+extern int			g_iScore;
+extern int			g_iBrickNum;
+extern int			g_iInterval;
+extern HBITMAP		g_tBit[11];
+extern HWND			g_hList; 
+extern HWND			g_hRoomCreate; 
+extern HWND			g_hOKbutton2;
+extern HWND			g_hEdit;
 extern HWND			g_hReadyButton;
-extern SOCKET		sock_room;
+extern SOCKET		g_hWRSock;
 
 extern tag_Status	GameStatus;
 
 
 //SOCKET Global variable
-extern SOCKET hSock;
-extern char cBuf[CHATSIZE];
-extern HWND hEdit1, hEdit2, hOKbutton;
-extern LVITEMA LI;
+extern SOCKET g_hSock;
+extern char g_cBuf[CHATSIZE];
+extern HWND g_hChatViewEdit, g_hChatInputEdit, g_hOkbutton;
+extern LVITEMA g_tLVItem;
 
 
 //About Bitmap
-extern BITMAPINFOHEADER bi;
-extern BITMAPFILEHEADER fh;
-extern LPBITMAPINFO lpHeader;
-extern LPVOID lpBody;
-extern HDC hCompare;
-extern HDC hTempDC;
-extern int iSize;
-extern HDC hMemDC;
-extern HDC hRecvMemDC;
-extern HGDIOBJ old_obj;
-extern HBITMAP hBitmap;
+extern BITMAPINFOHEADER g_tBitmap_InfoHeader;
+extern BITMAPFILEHEADER g_tBitmap_FileHeader;
+extern LPBITMAPINFO g_pBitmap_Info;
+extern LPVOID g_pBody;
+extern HDC g_hCompare;
+extern HDC g_hTempDC;
+extern int g_iSize;
+extern HDC g_hMemDC;
+extern HDC g_hRecvMemDC;
+extern HGDIOBJ g_old_obj;
+extern HBITMAP g_hBitmap;
 
-extern int iRecvSize;
-extern LPVOID lpRecvBody;
+extern int g_iRecvSize;
+extern LPVOID g_pRecvBody;
 
-extern LPVOID lpBMPFile;
-extern int iFileSize;
+extern LPVOID g_pBMPFile;
+extern int g_iFileSize;
 
 extern ofstream stream;
 extern ifstream streamSending;

@@ -46,7 +46,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		switch (((LPNMHDR)lParam)->code)
 		{
 		case LVN_ITEMCHANGED:
-			EnableWindow(hOKbutton2, TRUE);
+			EnableWindow(g_hOKbutton2, TRUE);
 			g_lpNIA	= (LPNMITEMACTIVATE)lParam;
 			g_iSaveRoomNumber = GetRoomNumber();
 
@@ -57,7 +57,7 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 	case WM_DESTROY:
 		EndDialog(hDlg, 0);
-		closesocket(sock_room);
+		closesocket(g_hWRSock);
 		return TRUE;
 	}
 
@@ -70,10 +70,10 @@ VOID InitProc_Waiting(HWND hDlg)
 	int retval	= 0;
 	LVCOLUMN	COL;
 
-	hList		= GetDlgItem(hDlg, IDC_LIST1);
-	hRoomCreate	= GetDlgItem(hDlg, IDC_BUTTON1);
-	hOKbutton2	= GetDlgItem(hDlg, IDOK);
-	hEdit		= GetDlgItem(hDlg, IDC_EDIT_ROOMNAME);
+	g_hList		= GetDlgItem(hDlg, IDC_LIST1);
+	g_hRoomCreate	= GetDlgItem(hDlg, IDC_BUTTON1);
+	g_hOKbutton2	= GetDlgItem(hDlg, IDOK);
+	g_hEdit		= GetDlgItem(hDlg, IDC_EDIT_ROOMNAME);
 
 	COL.mask		= LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	COL.fmt			= LVCFMT_LEFT;
@@ -81,17 +81,17 @@ VOID InitProc_Waiting(HWND hDlg)
 
 	COL.pszText		= L"Room Name";
 	COL.iSubItem	= 0;
-	SendMessage(hList, LVM_INSERTCOLUMN, 0, (LPARAM)&COL);
+	SendMessage(g_hList, LVM_INSERTCOLUMN, 0, (LPARAM)&COL);
 
 	COL.pszText		= L"Room ID";
 	COL.iSubItem	= 1;
-	SendMessage(hList, LVM_INSERTCOLUMN, 1, (LPARAM)&COL);
+	SendMessage(g_hList, LVM_INSERTCOLUMN, 1, (LPARAM)&COL);
 
 	COL.pszText		= L"personnel";
 	COL.iSubItem	= 2;
-	SendMessage(hList, LVM_INSERTCOLUMN, 2, (LPARAM)&COL);
+	SendMessage(g_hList, LVM_INSERTCOLUMN, 2, (LPARAM)&COL);
 
-	EnableWindow(hOKbutton2, FALSE);
+	EnableWindow(g_hOKbutton2, FALSE);
 
 
 
@@ -101,8 +101,8 @@ VOID InitProc_Waiting(HWND hDlg)
 	
 	
 	//Socket()
-	sock_room	= socket(AF_INET, SOCK_STREAM, 0);
-	if (sock_room == INVALID_SOCKET) err_quit("socket()");
+	g_hWRSock	= socket(AF_INET, SOCK_STREAM, 0);
+	if (g_hWRSock == INVALID_SOCKET) err_quit("socket()");
 
 	SOCKADDR_IN serveraddr = {0,};
 	serveraddr.sin_family		= AF_INET;
@@ -112,11 +112,11 @@ VOID InitProc_Waiting(HWND hDlg)
 
 
 	//WSAAsyncSelect()
-	retval		= WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
+	retval		= WSAAsyncSelect(g_hWRSock, hDlg, WM_SOCKET, FD_CONNECT | FD_CLOSE);
 	if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 	//connect()
-	retval		= connect(sock_room, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	retval		= connect(g_hWRSock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 	if (retval == INVALID_SOCKET)
 	{
 		if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -136,7 +136,7 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_CLOSE:
-		closesocket(sock_room);
+		closesocket(g_hWRSock);
 		break;
 
 	case FD_READ:
@@ -145,7 +145,7 @@ VOID ProcessSocketMessage_Room(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 	case FD_CONNECT:
 		//WSAAsyncSelect()
-		retval		= WSAAsyncSelect(sock_room, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
+		retval		= WSAAsyncSelect(g_hWRSock, hDlg, WM_SOCKET, FD_READ | FD_CLOSE);
 		if (retval == SOCKET_ERROR) err_quit("WSAAsyncSelect()");
 
 
@@ -159,27 +159,27 @@ VOID ViewRoomList(char *pBody, int iBodySize)
 	int iSizeOfRoom = 0;
 	char cNumOfRoom[10] = {0,};
 
-	LI.mask			= LVIF_TEXT;
-	LI.iItem		= 0;
+	g_tLVItem.mask			= LVIF_TEXT;
+	g_tLVItem.iItem		= 0;
 
 	while (iSizeOfRoom < iBodySize)
 	{
-		LI.iSubItem = 0;
-		LI.pszText = pBody + (sizeof(int) * 2) + iSizeOfRoom;
-		SendMessageA(hList, LVM_INSERTITEMA, 0, (LPARAM)&LI);
+		g_tLVItem.iSubItem = 0;
+		g_tLVItem.pszText = pBody + (sizeof(int) * 2) + iSizeOfRoom;
+		SendMessageA(g_hList, LVM_INSERTITEMA, 0, (LPARAM)&g_tLVItem);
 
-		LI.iSubItem = 1;
-		LI.pszText = pBody + iSizeOfRoom;
-		sprintf(LI.pszText, "%d", LI.pszText[0]);
-		SendMessageA(hList, LVM_SETITEMA, 1, (LPARAM)&LI);
+		g_tLVItem.iSubItem = 1;
+		g_tLVItem.pszText = pBody + iSizeOfRoom;
+		sprintf(g_tLVItem.pszText, "%d", g_tLVItem.pszText[0]);
+		SendMessageA(g_hList, LVM_SETITEMA, 1, (LPARAM)&g_tLVItem);
 
-		LI.iSubItem = 2;
-		LI.pszText = pBody + sizeof(int) + iSizeOfRoom;
-		sprintf(LI.pszText, "%d/%d", LI.pszText[0], MAX_PEOPLE);
-		SendMessageA(hList, LVM_SETITEMA, 2, (LPARAM)&LI);
+		g_tLVItem.iSubItem = 2;
+		g_tLVItem.pszText = pBody + sizeof(int) + iSizeOfRoom;
+		sprintf(g_tLVItem.pszText, "%d/%d", g_tLVItem.pszText[0], MAX_PEOPLE);
+		SendMessageA(g_hList, LVM_SETITEMA, 2, (LPARAM)&g_tLVItem);
 
 		iSizeOfRoom += sizeof(ROOMINFO);
-		LI.iItem++;
+		g_tLVItem.iItem++;
 	}
 #endif
 
@@ -237,7 +237,7 @@ VOID CreateRoom(HWND hDlg)
 
 	do 
 	{
-		iSendSize = send(sock_room, (char*)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendSize = send(g_hWRSock, (char*)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendSize == SOCKET_ERROR)
 		{
 			printf("send()\n");
@@ -246,9 +246,9 @@ VOID CreateRoom(HWND hDlg)
 		iSendTot += iSendSize;
 	} while (pHeader->iSize != iSendTot);
 
-	SetFocus(hEdit);
-	SendMessage(hEdit, EM_SETSEL, 0, -1);
-	SendMessage(hEdit, EM_REPLACESEL, NULL, (LPARAM)"");
+	SetFocus(g_hEdit);
+	SendMessage(g_hEdit, EM_SETSEL, 0, -1);
+	SendMessage(g_hEdit, EM_REPLACESEL, NULL, (LPARAM)"");
 
 	delete pRespBuf;
 	delete pPacket;
@@ -303,7 +303,7 @@ VOID JoinInTheRoom()
 	
 	do 
 	{
-		iSendLen = send(sock_room, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+		iSendLen = send(g_hWRSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
 		if (iSendLen == SOCKET_ERROR)
 		{
 			printf("send()\n");
@@ -323,7 +323,7 @@ int GetRoomNumber()
 
 	iBuflength = wcslen(cBuf);
 
-	ListView_GetItemText(hList, g_lpNIA->iItem, 1, cBuf, 255);
+	ListView_GetItemText(g_hList, g_lpNIA->iItem, 1, cBuf, 255);
 
 	if (iBuflength <= 1)
 	{
@@ -419,5 +419,5 @@ VOID SendingRenew()
 	
 	pHeader->iFlag = WSABUFFER_RENEW;
 
-	iSendByte = send(sock_room, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
+	iSendByte = send(g_hWRSock, (LPSTR)pHeader, sizeof(PACKET_HEADER), NULL);
 }
