@@ -36,6 +36,7 @@
 #include "ts_main.h"
 #include "ts_waiting_room.h"
 #include "err_debug.h"
+#include "ts_paint.h"
 
 using namespace std;
 
@@ -58,6 +59,8 @@ extern HWND			g_hEdit;
 extern HWND			g_hReadyButton;
 extern SOCKET		g_hWRSock;
 extern tag_Status	GameStatus;
+extern RECT			g_tGameRec;
+extern RECT			g_tRecvRec;
 
 
 //ts_socket Global variable

@@ -91,7 +91,7 @@ VOID SocketAcceptFunction(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	AddUserInfo(&addrClient, hClientSock);
 
 	iRetval = WSAAsyncSelect(hClientSock, hWnd, WM_SOCKET, FD_READ|FD_WRITE|FD_CLOSE);
-
+ 
 	if ( iRetval == SOCKET_ERROR )
 	{
 		err_display("WSAAsyncSelect()");
@@ -340,7 +340,7 @@ VOID SendingImage(SOCKET hSock, LPSTR pBuf, int iBufSize)
 		do 
 		{
 			iSendLen = send(hOtherSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
-			printf("Image Send(%lu), ToTal(%d), Cur(%d), SendLen(%d)(%d)\nSock(%X)\n", (iterUser->second->addr), pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen, hOtherSock);
+			//printf("Image Send(%lu), ToTal(%d), Cur(%d), SendLen(%d)(%d)\nSock(%X)\n", (iterUser->second->addr), pHeader->iSize, iSendTot, pHeader->iSize - iSendTot, iSendLen, hOtherSock);
 			if (iSendLen == SOCKET_ERROR)
 			{
 				break;

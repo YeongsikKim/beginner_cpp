@@ -253,8 +253,8 @@ VOID ReadBinaryBMP(LPSTR pBody, int iBodySize)
 	SetDIBits(g_hRecvMemDC, g_hBitmap, 0, g_tBitmap_InfoHeader.biHeight, lpBit, lpBmi, DIB_RGB_COLORS);
 	SelectObject(g_hRecvMemDC, g_hBitmap);
 
-	InvalidateRect(g_hWndMain, NULL, FALSE);
-	UpdateWindow(g_hWndMain);
+	InvalidateRect(g_hWndMain, &g_tRecvRec, FALSE);
+	//UpdateWindow(g_hWndMain);
 
 	BitBlt(hdc, (BW+12)*TS + 20, 0, (BW+2)*TS, (BH+2)*TS, g_hRecvMemDC, 0, 0, SRCCOPY);
 

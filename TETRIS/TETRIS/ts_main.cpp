@@ -148,6 +148,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	RECT		crt		= {0,};
 	
 
+	
+
 	switch ( uMsg )
 	{
 	case WM_CREATE:
@@ -155,6 +157,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SetRect(&crt, 0, 0, (BW+12)*TS + (BW+2)*TS + 20, (BH+2)*TS);
 		AdjustWindowRect(&crt, WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, TRUE);
 		SetWindowPos(g_hWndMain, NULL, 0, 0, crt.right - crt.left, crt.bottom - crt.top, SWP_NOMOVE | SWP_NOZORDER);
+
+		//Game Screen save
+		SetRect(&g_tGameRec, 0, 0, (BW+12)*TS, (BH+2)*TS);
+		SetRect(&g_tRecvRec, (BW+12)*TS + 20, 0, (BW+12)*TS + (BW+2)*TS + 20, (BH+2)*TS);
 
 		//Create Ready Button
 		CreateReadyButton(hWnd);
@@ -268,14 +274,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (GetAround(g_iWidth - 1, g_iHeigth, g_iBrick, g_iRot) == EMPTY)
 				{
 					g_iWidth--;
-					InvalidateRect(hWnd, NULL, FALSE);
+					InvalidateRect(hWnd, &g_tGameRec, FALSE);
 				}
 				break;
 			case VK_RIGHT:
 				if (GetAround(g_iWidth + 1, g_iHeigth, g_iBrick, g_iRot) == EMPTY)
 				{
 					g_iWidth++;
-					InvalidateRect(hWnd, NULL, FALSE);			
+					InvalidateRect(hWnd, &g_tGameRec, FALSE);			
 				}
 				break;
 			case VK_UP:
@@ -283,7 +289,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (GetAround(g_iWidth, g_iHeigth, g_iBrick, iTempRot) == EMPTY)
 				{
 					g_iRot	= iTempRot;
-					InvalidateRect(hWnd, NULL, FALSE);				
+					InvalidateRect(hWnd, &g_tGameRec, FALSE);				
 				}
 				break;
 			case VK_DOWN:
@@ -423,7 +429,7 @@ VOID MakeNewBrick()
 
 	g_iBrickNum++;
 
-	InvalidateRect(g_hWndMain, NULL, FALSE);
+	InvalidateRect(g_hWndMain, &g_tGameRec, FALSE);
 
 	if (GetAround(g_iWidth, g_iHeigth, g_iBrick, g_iRot) != EMPTY)
 	{
@@ -480,8 +486,8 @@ BOOL MoveDown()
 	}
 	g_iHeigth++;
 
-	InvalidateRect(g_hWndMain, NULL, FALSE);
-	UpdateWindow(g_hWndMain);
+	InvalidateRect(g_hWndMain, &g_tGameRec, FALSE);
+	//UpdateWindow(g_hWndMain);
 	return FALSE;
 }
 
@@ -521,7 +527,7 @@ VOID TestFull()
 					board[iWidth][iTempHeight]	= board[iWidth][iTempHeight-1];
 				}
 			}
-			InvalidateRect(g_hWndMain, NULL, FALSE);
+			InvalidateRect(g_hWndMain, &g_tGameRec, FALSE);
 			UpdateWindow(g_hWndMain);
 			Sleep(150);
 		}
@@ -537,23 +543,23 @@ VOID TestFull()
 
 VOID DrawBitmap(HDC hdc, int iWidth, int iHeigth, HBITMAP hBit)
 {
-	HDC			MemDC		= {0,};
+	HDC			hMemDC		= {0,};
 	HBITMAP		hOldBitmap	= {0,};
 	int			iBitWidth	= 0;
 	int			iBitHeigth	= 0;
 	BITMAP		tBit		= {0,};
 
-	MemDC		= CreateCompatibleDC(hdc);
-	hOldBitmap	= (HBITMAP)SelectObject(MemDC, hBit);
+	hMemDC		= CreateCompatibleDC(hdc);
+	hOldBitmap	= (HBITMAP)SelectObject(hMemDC, hBit);
 
 	GetObject(hBit, sizeof(BITMAP), &tBit);
 	iBitWidth			= tBit.bmWidth;
 	iBitHeigth			= tBit.bmHeight;
 
-	BitBlt(hdc, iWidth, iHeigth, iBitWidth, iBitHeigth, MemDC, 0, 0, SRCCOPY);
+	BitBlt(hdc, iWidth, iHeigth, iBitWidth, iBitHeigth, hMemDC, 0, 0, SRCCOPY);
 
-	SelectObject(MemDC, hOldBitmap);
-	DeleteDC(MemDC);
+	SelectObject(hMemDC, hOldBitmap);
+	DeleteDC(hMemDC);
 }
 
 

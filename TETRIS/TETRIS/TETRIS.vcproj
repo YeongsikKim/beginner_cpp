@@ -202,6 +202,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ts_paint.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ts_socket.cpp"
 				>
 			</File>
@@ -233,6 +237,10 @@
 			</File>
 			<File
 				RelativePath=".\ts_main.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ts_paint.h"
 				>
 			</File>
 			<File

@@ -12,6 +12,8 @@ HWND			g_hRoomCreate;
 HWND			g_hOKbutton2;
 HWND			g_hEdit;
 HWND			g_hReadyButton;
+RECT			g_tGameRec;
+RECT			g_tRecvRec;
 
 tag_Status		GameStatus;
 
