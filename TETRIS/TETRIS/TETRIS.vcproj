@@ -174,7 +174,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+<<<<<<< HEAD
 				RelativePath=".\err_print.cpp"
+=======
+				RelativePath=".\err_debug.cpp"
+>>>>>>> 3a1b7f01a4904cab97bf0eb6573d60835fc783bf
 				>
 			</File>
 			<File
@@ -198,15 +202,27 @@
 				</FileConfiguration>
 			</File>
 			<File
+<<<<<<< HEAD
 				RelativePath=".\tetris_chatting.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\tetris_main.cpp"
+=======
+				RelativePath=".\ts_main.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\waiting_room.cpp"
+				RelativePath=".\ts_paint.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ts_socket.cpp"
+>>>>>>> 3a1b7f01a4904cab97bf0eb6573d60835fc783bf
+				>
+			</File>
+			<File
+				RelativePath=".\ts_waiting_room.cpp"
 				>
 			</File>
 		</Filter>
@@ -216,7 +232,14 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+<<<<<<< HEAD
 				RelativePath=".\err_print.h"
+				>
+			</File>
+			<File
+				RelativePath=".\pre_define.h"
+=======
+				RelativePath=".\err_debug.h"
 				>
 			</File>
 			<File
@@ -225,6 +248,7 @@
 			</File>
 			<File
 				RelativePath=".\stdafx.h"
+>>>>>>> 3a1b7f01a4904cab97bf0eb6573d60835fc783bf
 				>
 			</File>
 			<File
@@ -232,15 +256,27 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ts_main.h"
+				>
+			</File>
+			<File
+<<<<<<< HEAD
 				RelativePath=".\tetris_chatting.h"
 				>
 			</File>
 			<File
 				RelativePath=".\tetris_main.h"
+=======
+				RelativePath=".\ts_paint.h"
 				>
 			</File>
 			<File
-				RelativePath=".\waiting_room.h"
+				RelativePath=".\ts_socket.h"
+>>>>>>> 3a1b7f01a4904cab97bf0eb6573d60835fc783bf
+				>
+			</File>
+			<File
+				RelativePath=".\ts_waiting_room.h"
 				>
 			</File>
 		</Filter>
