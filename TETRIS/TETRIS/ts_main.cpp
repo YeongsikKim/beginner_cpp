@@ -316,6 +316,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_VSTETRIS:
 		{
+			SettingBMPHeader();
 			SendingBMP();
 		}
 		break;
@@ -409,7 +410,7 @@ VOID DrawScreen(HDC hdc)
 	wsprintf(wStr, TEXT("Bricks: %d   "), g_iBrickNum);
 	TextOut(hdc, (BW+4)*TS, 80, wStr, lstrlen(wStr));
 
-	SettingBMPHeader();
+	//SettingBMPHeader();
 }
 
 VOID MakeNewBrick()
