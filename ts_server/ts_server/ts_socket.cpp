@@ -515,6 +515,9 @@ VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo)
 			iSendTot += iSendLen;
 		} while ( pHeader->iSize != iSendTot );
 	}
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 VOID NotReadyStatus(LPSOCKETINFO pClientSockInfo)
@@ -587,6 +590,9 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 		}
 		iSendTot += iSendLen;
 	} while ( pHeader->iSize != iSendTot );
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
 
 VOID Watchdog_Kill()
@@ -623,4 +629,8 @@ VOID Watchdog_Kill()
 			iSendTot += iSendLen;
 		} while ( pHeader->iSize != iSendTot );
 	}
+
+	delete [] pRespBuf;
+	pRespBuf = NULL;
 }
+

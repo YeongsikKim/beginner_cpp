@@ -51,6 +51,7 @@ extern int			g_iNBrick;
 extern int			g_iScore;
 extern int			g_iBrickNum;
 extern int			g_iInterval;
+extern int			g_iComboStack;
 extern HBITMAP		g_tBit[11];
 extern HWND			g_hList; 
 extern HWND			g_hRoomCreate; 

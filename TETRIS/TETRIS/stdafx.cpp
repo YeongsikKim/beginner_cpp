@@ -26,6 +26,7 @@ int g_iNBrick;
 int g_iScore;
 int g_iBrickNum;
 int g_iInterval;
+int g_iComboStack;
 HBITMAP g_tBit[11];
 
 

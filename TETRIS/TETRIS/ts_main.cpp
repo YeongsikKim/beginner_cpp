@@ -501,8 +501,10 @@ BOOL MoveDown()
 	}
 	g_iHeigth++;
 
+	//Combo Stack Initialization
+	g_iComboStack = 0;
+
 	InvalidateRect(g_hWndMain, &g_tGameRec, FALSE);
-	//UpdateWindow(g_hWndMain);
 	return FALSE;
 }
 
@@ -542,6 +544,7 @@ VOID TestFull()
 					board[iWidth][iTempHeight]	= board[iWidth][iTempHeight-1];
 				}
 			}
+
 			InvalidateRect(g_hWndMain, &g_tGameRec, FALSE);
 			UpdateWindow(g_hWndMain);
 			Sleep(150);
