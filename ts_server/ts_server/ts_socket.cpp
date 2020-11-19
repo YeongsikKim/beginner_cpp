@@ -588,3 +588,36 @@ VOID GameIsOver(LPSOCKETINFO pClientSocketInfo)
 		iSendTot += iSendLen;
 	} while ( pHeader->iSize != iSendTot );
 }
+
+VOID Watchdog_Kill()
+{
+	DWORD dwRespBufSize = 0;
+	PBYTE pRespBuf = NULL;
+	LPPACKET_HEADER pHeader = NULL;
+	int iSendLen = 0;
+	int iSendTot = 0;
+	SOCKET hClientSock = 0;
+
+	dwRespBufSize = sizeof(PACKET_HEADER) + 1;
+	pRespBuf = new BYTE[dwRespBufSize];
+	ZeroMemory(pRespBuf, dwRespBufSize);
+	pHeader = (LPPACKET_HEADER) pRespBuf;
+
+	pHeader->iFlag = WSABUFFER_WATCHDOG;
+	pHeader->iSize = sizeof(PACKET_HEADER);
+
+	for ( iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++ )
+	{
+		hClientSock = GetSock(iterUser->second);
+
+		do 
+		{
+			iSendLen = send(hClientSock, (LPSTR)pHeader + iSendTot, pHeader->iSize - iSendTot, NULL);
+			if ( iSendLen == SOCKET_ERROR )
+			{
+				printf("[ERROR] Watchdog error\n");
+			}
+			iSendTot += iSendLen;
+		} while ( pHeader->iSize != iSendTot );
+	}
+}

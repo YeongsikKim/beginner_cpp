@@ -165,6 +165,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		//Create Ready Button
 		CreateReadyButton(hWnd);
 
+		//Set Watchdog Timer
+		SetTimer(g_hWndMain, TIMER_TYPE_WATCHDOG, TIMER_TYPE_WATCHDOG_DELAY, NULL);
+
 		GameStatus	= GAMEOVER;
 		srand(GetTickCount());
 
@@ -253,9 +256,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 				}
 				break;
+
 			case TIMER_TYPE_CAPTURE : 
 				{
 					SendMessage(hWnd, WM_VSTETRIS, 0 ,0);
+				}
+				break;
+
+			case TIMER_TYPE_WATCHDOG :
+				{
+					MessageBox(g_hWndMain, _T("Server is Ended..."), _T("Notice"), MB_OK);
+					exit(-1);
 				}
 				break;
 			}
@@ -461,6 +472,9 @@ VOID MakeNewBrick()
 		pRespBuf = NULL;
 
 		MessageBox(g_hWndMain, TEXT("GameOver... Do you want to play, again?"), TEXT("NOTICE"), MB_OK);
+
+		InvalidateRect(g_hWndMain, &g_tRecvRec, TRUE);
+
 		SetWindowText(g_hReadyButton, TEXT("Ready"));
 		ShowWindow(g_hReadyButton, SW_SHOW);
 	}
@@ -743,8 +757,8 @@ VOID SettingBMPHeader()
 	free(g_pBody);
 	g_pBody = NULL;
 
-//	DeleteDC(hMemDC);
-//	DeleteObject(hBitmap);
+
+
 }
 
 VOID CreateReadyButton(HWND hWnd)

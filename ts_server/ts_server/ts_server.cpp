@@ -101,11 +101,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg)
 	{
 	case WM_CREATE:
+		{
+			SetTimer(hWnd, TIMER_TYPE_WATCHDOG, TIMER_TYPE_WATCHDOG_DELAY, NULL);
+		}
 		break;
 
 	case WM_SOCKET:
 		{
 			ProcessSocketMessage(hWnd, uMsg, wParam, lParam);
+		}
+		break;
+
+	case WM_TIMER:
+		{
+			switch(	wParam )
+			{
+			case TIMER_TYPE_WATCHDOG :
+				{
+					Watchdog_Kill();
+				}
+				break;
+			}
 		}
 		break;
 		

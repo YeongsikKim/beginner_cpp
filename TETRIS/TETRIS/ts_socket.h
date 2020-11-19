@@ -14,3 +14,4 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam);
 VOID SendChatting();
 VOID AllReadyIsDone(HWND hWnd);
 VOID VictoryOnGame();
+VOID Watchdog_Kill();

@@ -138,7 +138,13 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 	case WSABUFFER_END:
 		{
-			VictoryOnGame();		//////////////////////////////////////////ERROR OCCUR///////////////////////////////////////////////
+			VictoryOnGame();
+		}
+		break;
+
+	case WSABUFFER_WATCHDOG:
+		{
+			Watchdog_Kill();
 		}
 		break;
 	}
@@ -298,6 +304,15 @@ VOID VictoryOnGame()
 	GameStatus = GAMEOVER;
 
 	MessageBox(g_hWndMain, TEXT("You Winner!!"), TEXT("NOTICE"), MB_OK);
+
+	InvalidateRect(g_hWndMain, &g_tRecvRec, TRUE);
+
 	SetWindowText(g_hReadyButton, TEXT("Ready"));
 	ShowWindow(g_hReadyButton, SW_SHOW);
+}
+
+VOID Watchdog_Kill()
+{
+	KillTimer(g_hWndMain, TIMER_TYPE_WATCHDOG);
+	SetTimer(g_hWndMain, TIMER_TYPE_WATCHDOG, TIMER_TYPE_WATCHDOG_DELAY, NULL);
 }

@@ -1,8 +1,8 @@
 #pragma once
 
 
-#define BUFSIZE		456295
-#define ROOMNAME	24
+#define BUFSIZE		1024*512
+#define SMALLBUF	512
 #define BIT_COUNT	24
 
 
@@ -28,11 +28,16 @@
 #define WSABUFFER_START		0x00000400
 #define WSABUFFER_END		0x00000800
 #define WSABUFFER_PAUSE		0x00001000
+#define WSABUFFER_WATCHDOG	0x00002000
 
 
 //WM_USER
 #define WM_SOCKET	(WM_USER+1)
 #define WM_RENEW	(WM_USER+2)
+
+//WM_TIMER
+#define TIMER_TYPE_WATCHDOG			1
+#define TIMER_TYPE_WATCHDOG_DELAY	1000 * 3
 
 
 
@@ -58,7 +63,7 @@ typedef struct _ROOMINFO
 {
 	int iNum;
 	int iPeopleIN;
-	char cRoomName[ROOMNAME];
+	char cRoomName[SMALLBUF];
 }ROOMINFO, *LPROOMINFO;
 
 

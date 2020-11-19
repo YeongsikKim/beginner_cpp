@@ -17,3 +17,4 @@ VOID JoinInTheRoom(SOCKETINFO* pClientSocketInfo, LPSTR pBody);
 VOID ReadyStatus(SOCKET hClientSock, LPSOCKETINFO pClientSockInfo);
 VOID NotReadyStatus(LPSOCKETINFO pClientSockInfo);
 VOID GameIsOver(LPSOCKETINFO pClientSocketInfo);
+VOID Watchdog_Kill();
