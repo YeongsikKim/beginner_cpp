@@ -118,6 +118,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 			case TIMER_TYPE_WATCHDOG :
 				{
+					if ( mSOCKET.begin() == mSOCKET.end() )
+					{
+						break;
+					}
 					Watchdog_Kill();
 				}
 				break;

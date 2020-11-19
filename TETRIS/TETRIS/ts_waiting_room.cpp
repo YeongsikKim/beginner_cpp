@@ -41,6 +41,19 @@ BOOL CALLBACK DlgProc_Waiting(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		}
 		return TRUE;
 
+	case WM_TIMER:
+		{
+			switch ( wParam )
+			{
+			case TIMER_TYPE_WATCHDOG :
+				{
+					KillTimer(hDlg, TIMER_TYPE_WATCHDOG);
+					MessageBox(g_hWndMain, _T("Server is Ended..."), _T("Notice"), MB_OK);
+				}
+			}
+		}
+		break;
+
 	case WM_SOCKET:
 		{
 			ProcessSocketMessage_Room(hDlg, uMsg, wParam, lParam);
@@ -77,6 +90,8 @@ VOID InitProc_Waiting(HWND hDlg)
 {
 	int iRetval	= 0;
 	LVCOLUMN	tLVcol;
+
+	SetTimer(hDlg, TIMER_TYPE_WATCHDOG, TIMER_TYPE_WATCHDOG_DELAY, NULL);
 
 	g_hList		= GetDlgItem(hDlg, IDC_LIST1);
 	g_hRoomCreate	= GetDlgItem(hDlg, IDC_BUTTON1);
@@ -424,6 +439,12 @@ VOID WaitingRoomReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	case WSABUFFER_NOTFULL:
 		{
 			EndDialog(hDlg, 0);
+		}
+		break;
+
+	case WSABUFFER_WATCHDOG:
+		{
+			Watchdog_Kill(hDlg);
 		}
 		break;
 	}

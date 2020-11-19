@@ -606,9 +606,10 @@ VOID Watchdog_Kill()
 	pHeader->iFlag = WSABUFFER_WATCHDOG;
 	pHeader->iSize = sizeof(PACKET_HEADER);
 
-	for ( iterUser = mUSER.begin(); iterUser != mUSER.end(); iterUser++ )
+	for ( iterSocket = mSOCKET.begin(); iterSocket != mSOCKET.end(); iterSocket++ )
 	{
-		hClientSock = GetSock(iterUser->second);
+		iSendTot = 0;
+		hClientSock = iterSocket->second->sock;
 
 		do 
 		{
@@ -616,7 +617,9 @@ VOID Watchdog_Kill()
 			if ( iSendLen == SOCKET_ERROR )
 			{
 				printf("[ERROR] Watchdog error\n");
+				break;
 			}
+			
 			iSendTot += iSendLen;
 		} while ( pHeader->iSize != iSendTot );
 	}

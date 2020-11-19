@@ -144,7 +144,7 @@ VOID ChattingReadFunction(HWND hDlg, WPARAM wParam, LPARAM lParam)
 
 	case WSABUFFER_WATCHDOG:
 		{
-			Watchdog_Kill();
+			Watchdog_Kill(g_hWndMain);
 		}
 		break;
 	}
@@ -311,8 +311,8 @@ VOID VictoryOnGame()
 	ShowWindow(g_hReadyButton, SW_SHOW);
 }
 
-VOID Watchdog_Kill()
+VOID Watchdog_Kill(HWND hWnd)
 {
-	KillTimer(g_hWndMain, TIMER_TYPE_WATCHDOG);
-	SetTimer(g_hWndMain, TIMER_TYPE_WATCHDOG, TIMER_TYPE_WATCHDOG_DELAY, NULL);
+	KillTimer(hWnd, TIMER_TYPE_WATCHDOG);
+	SetTimer(hWnd, TIMER_TYPE_WATCHDOG, TIMER_TYPE_WATCHDOG_DELAY, NULL);
 }

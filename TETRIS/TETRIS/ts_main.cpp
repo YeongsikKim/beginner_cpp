@@ -266,7 +266,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			case TIMER_TYPE_WATCHDOG :
 				{
 					MessageBox(g_hWndMain, _T("Server is Ended..."), _T("Notice"), MB_OK);
-					exit(-1);
+					KillTimer(g_hWndMain, TIMER_TYPE_WATCHDOG);
 				}
 				break;
 			}
